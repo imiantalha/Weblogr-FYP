@@ -1,0 +1,396 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+  background: linear-gradient(80deg, #34db8d, #bae2c0, #34db8d 100%);
+	background-size: 400% 400%;
+	animation: gradient 2s infinite;
+}
+
+@keyframes gradient {
+	0% {
+		background-position: 0% 100%;
+	}
+	100% {
+		background-position: 100% 0%;
+	}
+}
+
+::selection {
+  background: rgba(26, 188, 156, 0.3);
+}
+
+/* login.php */
+.center-items { 
+  align-items: center;
+  justify-content: center;
+}
+.container {
+  max-width: 440px;
+  padding: 0 20px;
+  margin-left: 35%;
+  align-items: center;
+  margin-top: 80px;
+}
+
+.container .welcome {
+  text-align: center;
+  color: white;
+}
+
+.wrapper {
+  width: 100%;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px 1px rgba(0, 0, 0, 0.1);
+}
+
+.wrapper .title {
+  height: 90px;
+  background: #64ce9d;
+  border-radius: 10px 10px 0 0;
+  color: #fff;
+  font-size: 30px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wrapper form {
+  padding: 30px;
+}
+
+.wrapper form .row {
+ height: 45px;
+ margin-bottom: 15px;
+ position: relative;
+}
+
+.wrapper form .row input {
+ height: 100%;
+ width: 100%;
+ outline: none;
+ padding-left: 60px;
+ border-radius: 5px;
+ border: 1px solid lightgrey;
+ font-size: 16px;
+ transition: all 0.3s ease;
+}
+
+form .row input:focus {
+ border-color: #16a085;
+ box-shadow: inset 0px 0px 2px 2px rgba(26, 188, 156, 0.25);
+}
+
+form .row input::placeholder {
+  color: #999;
+}
+
+.wrapper form .row i {
+ position: absolute;
+ width: 47px;
+ height: 100%;
+ color: #fff;
+ font-size: 18px;
+ background: #16a085;
+ border: 1px solid #16a085;
+ border-radius: 5px 0 0 5px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+
+.wrapper form .button input {
+ color: #fff;
+ font-size: 20px;
+ font-weight: 500;
+ padding-left: 0px;
+ background: #16a085;
+ border: 1px solid #16a085;
+ cursor: pointer;
+}
+
+form .button input:hover {
+ background: #12876f;
+}
+
+form select {
+ border-color: lightgray;
+}
+
+.wrapper form .signup-link {
+ text-align: center;
+}
+
+.wrapper form .signup-link a {
+ color: #16a085;
+ text-decoration: none;
+}
+
+form .signup-link a:hover {
+  text-decoration: underline;
+}
+
+
+/* success.php */
+
+.success-welcome {
+  text-align: center;
+  color: white;
+  margin-top: 30px;
+  font-style: italic;
+  font-weight: bold;
+}
+
+
+/* otp_verification.php */
+
+.otp-container {
+  width: 400px; 
+  margin: 50px auto; 
+  padding: 30px;
+  border-radius: 5px;
+  background-color: #bae2c0; 
+}
+
+.otp-container h1 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.otp-container h6 {
+  font-size: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #888; 
+}
+
+.otp-container form {
+  display: flex;
+  justify-content: center; 
+  margin-bottom: 10px;
+}
+
+.input-container {
+  display: flex;
+}
+
+.input-container input {
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.otp-button {
+  padding: 5px 5px;
+  border: none;
+  border-radius: 3px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.otp-digit {
+  width: 40px; 
+  height: 35px; 
+  text-align: left;
+  font-size: 18px; 
+  margin-right: 5px; 
+}
+
+.otp-digit:last-child {
+  margin-right: 2px; 
+}
+
+.otp-container a {
+  color: rgb(0, 53, 105);
+  display: block;
+  text-align: center;
+  margin: 20px;
+}
+
+/* profile.php */
+.profile-container {
+  display: flex;
+  flex-wrap: wrap; 
+  width: 50%;
+  margin: 50px auto;
+  background-color: #bae2c0;
+  border-radius: 10px;
+}
+
+.profile-picture {
+  width: 30%; 
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.edit {
+  width: 50%;
+  margin-left: 25%;
+}
+
+.profile-container img {
+  width: 100%; 
+  border-radius: 50%;
+}
+
+.user-info {
+  width: 66%; 
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.profile-h2 {
+  color: white;
+  text-align: center;
+  margin-top: 30px;
+}
+
+.profile-container h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.user-info p {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 15px;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.profile-btn {
+  background-color: #007bff;
+  font-size: 18px;
+  color: #fff;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  margin-right: 20px;
+  margin-bottom: 10px;
+}
+
+.profile-btn a {
+  color: white;
+  text-decoration: none;
+}
+
+.filter {
+  text-align: center; 
+  font-size: 16px; 
+  border-radius: 7px;
+  background-color: #b9d4c7; 
+  border:none;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+  /* sidebar */
+.sidebar {
+  background-color: #f0f0f0;
+  width: 145px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.sidebar a {
+  display: block;
+  padding: 2px;
+  padding-left: 7px;
+  text-align: justify;
+  text-decoration: none;
+  color: #333;
+  margin-top: 20px;
+  margin-left: 3px;
+}
+
+.sidebar a:hover {
+  background-color: #ddd;
+}
+
+.top-bar {
+  background: #34db8d;
+  color: #f5f5f5;
+  text-align: center;
+  font-weight: bold;
+  font-size: 30px;
+  padding: 10px;
+}
+
+.sidebar .top-bar {
+  background-color:  #5a4c4c;
+}
+
+@media screen and (max-width: 768px) {
+ /* profile */
+  .container {
+    margin: 3px;
+  }
+  .profile-container {
+    width: 90%; 
+    margin: 2px auto; 
+  }
+
+  textarea, input {
+    max-width: 100%;
+  }
+
+  .profile-picture  {
+     display: none;
+  }
+
+  .user-info {
+    position: relative;
+    padding: 10px;
+  }
+
+  .edit {
+    margin: 3Px;
+  }
+  .menu {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 10px;
+    padding: 0; 
+  }
+
+/* sidebar */
+  .menu li {
+    margin: 0px;
+    flex: 0 0 calc(30% - 10px);
+    max-width: calc(30% - 10px);
+    list-style-type: none; 
+  }
+
+  .menu a {
+    margin: 0px;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+  }
+}

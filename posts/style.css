@@ -1,0 +1,306 @@
+/* Common styles */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  margin: 0;
+  word-wrap: break-word;
+  background: linear-gradient(90deg, #34db8d, #bae2c0, #34db8d 100%);
+	background-size: 400% 400%;
+	animation: gradient 3s infinite;
+}
+
+@keyframes gradient {
+	0% {
+		background-position: 0% 100%;
+	}
+	100% {
+		background-position: 100% 0%;
+	}
+}
+
+.top-bar {
+  background: #34db8d;
+  color: #f5f5f5;
+  text-align: center;
+  font-weight: bold;
+  font-size: 30px;
+  padding: 10px;
+}
+
+form {
+  margin: 15px;
+  text-align: center;
+}
+
+input {
+  text-align: center;
+  margin-top: 10px;
+  background-color: #bae2c0;
+}
+
+form input:focus {
+  border-color: #16a085;
+  box-shadow: inset 0px 0px 2px 2px rgba(26, 188, 156, 0.25);
+ }
+
+textarea {
+  background-color: #bae2c0;
+}
+
+#blog-title,
+#blog-para,
+#blog-date {
+  outline: none;
+  border: 1.5px solid rgb(138, 219, 159);
+  color: #000000;
+  font-size: 20px;
+  border-radius: 5px;
+  padding: 5px 5px;
+}
+
+#blog-para {
+  resize: none;
+}
+
+.date-container {
+  text-align: right;
+}
+
+#display-date {
+  text-align: right;
+}
+
+#save-btn {
+  border: none;
+  background: #007bff;
+  color: #fff;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#save-btn button:hover {
+  background-color: #005abb;
+}
+
+#save-btn a {
+  margin: 0;
+  color: #fff;
+  text-decoration: none;
+}
+
+.notifications {
+  margin-left: 40%;
+  margin-bottom: 5px;
+  text-align:justify;
+}
+/* Specific to index.php */
+.all-posts-container {
+  display: flex;
+  flex-direction: column; 
+  align-items: center;
+  justify-content: center;
+}
+
+.post-container {
+  background: #bae2c0;
+  color: #000322;
+  margin-bottom: 30px;
+  width: 45%; /* Adjust width as needed */
+  height: auto;
+  border-radius: 15px;
+  padding: 10px 25px 25px 25px;
+  text-align: center; 
+}
+
+#display-title {
+  font-weight: bold;
+  font-size: 22px; 
+}
+
+
+#display-para {
+  padding-top: 0;
+  margin-top: 0;
+  text-align: justify;
+}
+
+p a {
+  padding-top: 0;
+  margin-top: 0;
+  text-decoration: none;
+  display: inline-flex;
+  font-size: 18px;
+}
+
+#display-image {
+  width: 100%;
+  height: 280px;
+  border-radius: 15px;
+}
+
+.report {
+  text-align: right;
+}
+
+.report a {
+  margin: 0;
+  margin-left: 90%;
+  padding: 0;
+}
+
+/* Add styling for like button and comments */
+.like-button { 
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+}
+
+.like-button a {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.container {
+  width: 50%;
+  margin: auto;
+  text-align: justify;
+}
+
+form .filter {
+  text-align: center; 
+  font-size: 16px; 
+  border-radius: 7px;
+  /* background-color: #34db8d;  */
+  border:none;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+form .submit{
+  border-radius: 10px;
+  border: none; 
+  margin-left: 3px; 
+  /* background-color: #34db95;  */
+  padding-top: 1px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 5px;
+}
+
+form  button:hover {
+  color: #ffffff;
+  background-color: #007bff;
+}
+
+h1 {
+  margin-bottom: 10px;
+  color: #fff;
+  text-align: center;
+}
+
+a {
+  color: rgb(0, 53, 105);
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+
+}
+
+/* sidebar */
+.sidebar {
+  background-color: #f0f0f0;
+  width: 130px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.menu li {
+  list-style-type: none;
+  display:block;
+}
+
+.content {
+  margin-left: 2px; 
+  padding: 2px;
+}
+
+.sidebar a {
+  display: block;
+  padding: 2px;
+  text-align: left;
+  text-decoration: none;
+  color: #333;
+}
+
+.sidebar a:hover {
+  background-color: #ddd;
+}
+
+.sidebar .top-bar {
+  background-color:  #5a4c4c;
+  font-size: 24px;
+}
+
+
+@media screen and (max-width: 768px) {
+
+  .all-posts-container {
+    padding: 0 10px; 
+    margin-bottom: 5px;
+  }
+  
+  .post-container {
+    width: 95%; /* Change width for small screens */
+  }
+
+  .post-container button {
+    margin-right: 3px;
+    margin-left: 0px;
+  }
+  .post-container a {
+    margin-left: 3px;
+  }
+
+  #blog-para{
+    max-width: 90%;
+  }
+
+  .notifications {
+    margin-left: 7px;
+  }
+  /* sidebar */
+  .menu {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0; 
+  }
+
+  .menu li {
+    margin: 5px;
+    flex: 0 0 calc(25% - 10px);
+    max-width: calc(25% - 10px);
+    list-style-type: none; 
+  }
+
+  .menu a {
+    margin: 0px;
+  }
+  /* .sidebar ul {
+    display: none; /* Hide the ul element on small screens */
+  /* }  */
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+  }
+}
+
