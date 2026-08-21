@@ -42,9 +42,14 @@ function require_authentication(): int
     return (int)$_SESSION['user_id'];
 }
 
+function rate_limit_key(string $scope, string $identifier): string
+{
+    return 'rate_'.hash('sha256',$scope.'|'.strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));
+}
+
 function enforce_rate_limit(string $scope, string $identifier, int $maxAttempts, int $windowSeconds): void
 {
-    start_secure_session(); $now=time(); $key='rate_'.hash('sha256',$scope.'|'.strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));
+    start_secure_session(); $now=time(); $key=rate_limit_key($scope,$identifier);
     $data=$_SESSION[$key]??['count'=>0,'started'=>$now]; if($now-(int)$data['started']>$windowSeconds)$data=['count'=>0,'started'=>$now];
     if((int)$data['count'] >= $maxAttempts){http_response_code(429);exit('Too many requests. Please try again later.');} $data['count']++; $_SESSION[$key]=$data;
 }
@@ -61,5 +66,5 @@ function record_failed_login(string $identifier): void
 
 function clear_login_rate_limit(string $identifier): void
 {
-    start_secure_session(); $key='login_attempts_'.hash('sha256',strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown')); unset($_SESSION[$key]);
+    start_secure_session(); unset($_SESSION[rate_limit_key('login',$identifier)]); $key='login_attempts_'.hash('sha256',strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown')); unset($_SESSION[$key]);
 }
