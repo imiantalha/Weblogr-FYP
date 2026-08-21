@@ -1,0 +1,17 @@
+Options -Indexes
+
+# Never expose environment files or repository metadata.
+<FilesMatch "^\.env|^\.git|^(composer\.json|composer\.lock|SECURITY\.md)$">
+    Require all denied
+</FilesMatch>
+
+# Internal configuration and dependency source must not be browsable.
+RewriteEngine On
+RewriteRule ^(?:database|includes|registration/vendor|registration/smtp)(?:/|$) - [F,L,NC]
+
+# Add baseline browser protections where Apache allows headers.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
