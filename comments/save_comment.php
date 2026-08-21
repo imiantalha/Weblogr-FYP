@@ -2,18 +2,8 @@
 
 declare(strict_types=1);
 
-$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => $isHttps,
-    'samesite' => 'Lax',
-]);
-session_start();
-
-if (!isset($_SESSION['user_id'], $_SESSION['username'])) {
-    header('Location: ../registration/login.php');
-    exit;
-}
+require '../includes/security.php';
+require_authentication();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -21,12 +11,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit('Method not allowed.');
 }
 
+verify_csrf();
 require '../database/db.php';
 
 $blog_id = filter_var($_POST['blog_id'] ?? 0, FILTER_VALIDATE_INT);
 $commenter_id = (int) $_SESSION['user_id'];
 $comment_text = trim((string) ($_POST['comment_text'] ?? ''));
-$username = strtoupper((string) $_SESSION['username']);
+$username = strtoupper((string) ($_SESSION['username'] ?? ''));
 
 if (!$blog_id || $comment_text === '' || mb_strlen($comment_text) > 2000) {
     $con->close();
