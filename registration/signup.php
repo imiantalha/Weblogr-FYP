@@ -1,88 +1,84 @@
 <?php
+
+declare(strict_types=1);
+
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
 session_start();
 
-// Redirect to profile.php if the user is already logged in
-if (isset($_SESSION["username"])) {
-    header("Location: profile.php");
+if (isset($_SESSION['username'])) {
+    header('Location: profile.php');
     exit;
 }
 
-$insert = false;
-$username_already_exist = false;
-$email_already_exist = false;
+$registration_error = null;
 
-if (isset($_POST['username'], $_POST['email'], $_POST['password'], $_POST['confirm_password'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require '../database/db.php';
 
-    // Database connection
-    include '../database/db.php';
+    $fullname = trim((string) ($_POST['fullname'] ?? ''));
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+    $password = (string) ($_POST['password'] ?? '');
+    $confirm_password = (string) ($_POST['confirm_password'] ?? '');
 
-    $fullname = $_POST['fullname'];
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $password = $_POST['password']; 
-    $confirm_password = $_POST['confirm_password'];
-
-    // Check if the username already exists
-    $select = "SELECT username FROM users WHERE username = ? AND is_verified = 1";
-    $statement = $con->prepare($select);
-    $statement->bind_param("s", $username);
-    $statement->execute();
-    $result = $statement->get_result();
-
-    if ($result->num_rows > 0) {
-        $username_already_exist = true;
-    }
-
-    // Check if the email already exists
-    $select = "SELECT email, is_verified FROM users WHERE email = ? AND is_verified = 1";
-
-    $statement = $con->prepare($select);
-    $statement->bind_param("s", $email);
-    $statement->execute();
-    $result = $statement->get_result();
-
-    if ($result->num_rows > 0) {
-        $email_already_exist = true;
-    }
-
-    if ($email_already_exist) {
-        echo '<script>alert("Email already exist.");</script>';
-
-    } 
-    elseif ($username_already_exist) {
-      echo '<script>alert("Username already exist.");</script>';
-    }
-    else {
-
-        $otp = mt_rand(100000, 999999);
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-
-        // Insert user data into database
-        $sql = "INSERT INTO `users` (`fullname`,`username`, `email`, `password`, `otp`, `date`, `is_verified`)
-        VALUES (?, ?, ?, ?, ?, current_timestamp(), 0)";
-
-        $statement = $con->prepare($sql);
-        $statement->bind_param("sssss", $fullname, $username, $email, $password_hash, $otp);
+    if ($fullname === '' || mb_strlen($fullname) > 25) {
+        $registration_error = 'Please enter a valid full name.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $registration_error = 'Please enter a valid email address.';
+    } elseif (!preg_match('/^[A-Za-z0-9_.-]{3,255}$/', $username)) {
+        $registration_error = 'Username must be 3-255 characters and contain only letters, numbers, dots, underscores, or hyphens.';
+    } elseif (strlen($password) < 8) {
+        $registration_error = 'Password must be at least 8 characters long.';
+    } elseif ($password !== $confirm_password) {
+        $registration_error = 'Passwords do not match.';
+    } else {
+        $statement = $con->prepare('SELECT username, email, is_verified FROM users WHERE username = ? OR email = ? LIMIT 1');
+        $statement->bind_param('ss', $username, $email);
         $statement->execute();
-        $insert = true;
+        $existing_user = $statement->get_result()->fetch_assoc();
+        $statement->close();
 
-        require 'vendor/autoload.php';
-        $reset =false;
-        // handle mail functions
-        include 'mail.php';
+        if ($existing_user !== null) {
+            if ((int) $existing_user['is_verified'] === 1) {
+                $registration_error = $existing_user['username'] === $username
+                    ? 'Username already exists.'
+                    : 'Email already exists.';
+            } else {
+                $registration_error = 'An unverified account already exists for this username or email. Complete verification before registering again.';
+            }
+        } else {
+            $otp = random_int(100000, 999999);
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+            $statement = $con->prepare(
+                'INSERT INTO users (fullname, username, email, password, otp, date, is_verified)
+                 VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), 0)'
+            );
+            $statement->bind_param('sssss', $fullname, $username, $email, $password_hash, $otp);
+            $statement->execute();
+            $statement->close();
+            $con->close();
+
+            require 'mail.php';
+            exit;
+        }
     }
+
+    $con->close();
 }
-
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIGNUP</title> 
+  <title>SIGNUP</title>
   <script src="index.js"></script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
@@ -97,26 +93,30 @@ if (isset($_POST['username'], $_POST['email'], $_POST['password'], $_POST['confi
       <div class="wrapper">
         <div class="title"><span>Registration Form</span></div>
 
+        <?php if ($registration_error !== null): ?>
+          <p role="alert"><?php echo htmlspecialchars($registration_error, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php endif; ?>
+
         <form onsubmit="return form_validation()" method="post">
           <div class="row">
             <i class="fas fa-user"></i>
-            <input type="text" placeholder="Full Name" required name="fullname" id="fullname">
+            <input type="text" placeholder="Full Name" required name="fullname" id="fullname" maxlength="25" autocomplete="name">
           </div>
           <div class="row">
             <i class="fas fa-envelope"></i>
-            <input type="email" placeholder="Email" required name="email" id="email">
+            <input type="email" placeholder="Email" required name="email" id="email" autocomplete="email">
           </div>
           <div class="row">
             <i class="fas fa-user"></i>
-            <input type="text" placeholder="Username" required name="username" id="username" minlength="3">
+            <input type="text" placeholder="Username" required name="username" id="username" minlength="3" maxlength="255" autocomplete="username">
           </div>
           <div class="row">
             <i class="fas fa-lock"></i>
-            <input type="password" placeholder="Password" required name="password" id="password" maxminlength="5" maxlength="10">
+            <input type="password" placeholder="Password" required name="password" id="password" minlength="8" autocomplete="new-password">
           </div>
           <div class="row">
             <i class="fas fa-key"></i>
-            <input type="password" placeholder="Confirm password" required name="confirm_password" id="confirm_password" minlength="5" maxlength="10">
+            <input type="password" placeholder="Confirm password" required name="confirm_password" id="confirm_password" minlength="8" autocomplete="new-password">
           </div>
 
           <div class="row button">
@@ -127,6 +127,5 @@ if (isset($_POST['username'], $_POST['email'], $_POST['password'], $_POST['confi
       </div>
     </div>
   </div>
-  
 </body>
 </html>
