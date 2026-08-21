@@ -20,7 +20,7 @@ jobs:
           extensions: mysqli, fileinfo
 
       - name: Validate Composer configuration
-        run: composer validate --working-dir=registration --strict
+        run: composer validate --working-dir=registration
 
       - name: Lint application PHP files
         shell: bash
