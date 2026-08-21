@@ -43,7 +43,7 @@ if (!in_array($purpose, ['registration', 'password_reset'], true) || !is_string(
             $error_message = 'Invalid OTP. Please try again.';
         } else {
             $user_id = (int) $user['user_id'];
-            $statement = $con->prepare('UPDATE users SET otp = NULL WHERE user_id = ?');
+            $statement = $con->prepare("UPDATE users SET otp = '' WHERE user_id = ?");
             $statement->bind_param('i', $user_id);
             $statement->execute();
             $statement->close();
@@ -78,7 +78,6 @@ if (!in_array($purpose, ['registration', 'password_reset'], true) || !is_string(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OTP Verification - Weblogr</title>
-    <script src="index.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
