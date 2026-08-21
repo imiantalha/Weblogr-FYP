@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
 if (!isset($email, $otp)) {
@@ -37,9 +36,9 @@ try {
     $mail->Body = 'Your OTP for Weblogr registration is: ' . htmlspecialchars((string) $otp, ENT_QUOTES, 'UTF-8');
     $mail->send();
 
-    header('Location: otp_verification.php?email=' . rawurlencode((string) $email) . '&reset');
+    header('Location: otp_verification.php');
     exit;
-} catch (Exception $exception) {
+} catch (Throwable $exception) {
     error_log('Registration email failed: ' . $exception->getMessage());
     http_response_code(500);
     echo 'Unable to send the verification email. Please try again later.';
