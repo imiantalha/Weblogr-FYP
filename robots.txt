@@ -7,4 +7,4 @@ Disallow: /database/
 Disallow: /assets/
 Disallow: /styles/
 
-Sitemap: https://weblogr.com/sitemap.xml
+Sitemap: /sitemap.xml
