@@ -51,7 +51,6 @@ $follower_statement = $con->prepare(
     'SELECT u.username FROM users u INNER JOIN followers f ON u.user_id = f.follower_id WHERE f.blogger_id = ? ORDER BY u.username'
 );
 $follower_statement->bind_param('i', $user_id);
-follower_statement: null;
 $follower_statement->execute();
 $follower_result = $follower_statement->get_result();
 
