@@ -1,37 +1,46 @@
 <?php
-include('smtp/PHPMailerAutoload.php');
 
-echo smtp_mailer($email, 'Weblogr - OTP Verification', "Your OTP for Weblogr registration is: $otp");
+declare(strict_types=1);
 
-function smtp_mailer($to, $subject, $message) {
-    $mail = new PHPMailer\PHPMailer\PHPMailer(); 
-    $mail->isSMTP(); 
-    $mail->SMTPAuth = true; 
-    $mail->SMTPSecure = 'tls'; 
-    $mail->Host = "smtp.gmail.com";
-    $mail->Port = 587; 
-    $mail->isHTML(true);
-    $mail->CharSet = 'UTF-8';
-    //$mail->SMTPDebug = 2; 
-    $mail->Username = "talhaarshad427@gmail.com";
-    $mail->Password = "efhw bqpr uyuu hjxs";
-    $mail->setFrom("talhaarshad427@gmail.com", "Weblogr");
-    $mail->Subject = $subject;
-    $mail->Body = $message;
-    $mail->addAddress($to);
-    $mail->SMTPOptions = array('ssl' => array(
-        'verify_peer' => false,
-        'verify_peer_name' => false,
-        'allow_self_signed' => false
-    ));
+require_once __DIR__ . '/vendor/autoload.php';
 
-    
-    if ($mail->send()) {
-        header("Location: otp_verification.php?email=$to&reset");
-        exit;
-    } else {
-        // Handle email sending failure
-        echo "Failed to send OTP. Please try again. Error: " . $mail->ErrorInfo;
-    }
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+
+if (!isset($email, $otp)) {
+    throw new RuntimeException('Email delivery requires a recipient and OTP.');
 }
-?>
+
+$mail = new PHPMailer(true);
+
+try {
+    $mail->isSMTP();
+    $mail->Host = getenv('MAIL_HOST') ?: 'smtp.gmail.com';
+    $mail->SMTPAuth = true;
+    $mail->Username = getenv('MAIL_USERNAME') ?: '';
+    $mail->Password = getenv('MAIL_PASSWORD') ?: '';
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = (int) (getenv('MAIL_PORT') ?: 587);
+    $mail->CharSet = 'UTF-8';
+    $mail->isHTML(true);
+
+    $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: $mail->Username;
+    $fromName = getenv('MAIL_FROM_NAME') ?: 'Weblogr';
+
+    if ($mail->Username === '' || $mail->Password === '' || $fromAddress === '') {
+        throw new RuntimeException('Mail credentials are not configured.');
+    }
+
+    $mail->setFrom($fromAddress, $fromName);
+    $mail->addAddress($email);
+    $mail->Subject = 'Weblogr - OTP Verification';
+    $mail->Body = 'Your OTP for Weblogr registration is: ' . htmlspecialchars((string) $otp, ENT_QUOTES, 'UTF-8');
+    $mail->send();
+
+    header('Location: otp_verification.php?email=' . rawurlencode((string) $email) . '&reset');
+    exit;
+} catch (Exception $exception) {
+    error_log('Registration email failed: ' . $exception->getMessage());
+    http_response_code(500);
+    echo 'Unable to send the verification email. Please try again later.';
+}
