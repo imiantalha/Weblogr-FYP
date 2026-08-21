@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
-$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => $isHttps,
-    'samesite' => 'Lax',
-]);
-session_start();
+require '../includes/security.php';
+start_secure_session();
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method not allowed.');
+}
+
+verify_csrf();
 $_SESSION = [];
 
 if (ini_get('session.use_cookies')) {
@@ -18,6 +20,5 @@ if (ini_get('session.use_cookies')) {
 }
 
 session_destroy();
-
 header('Location: ../index.html');
 exit;
