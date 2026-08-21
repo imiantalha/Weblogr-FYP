@@ -9,6 +9,9 @@ Options -Indexes
 RewriteEngine On
 RewriteRule ^(?:database|includes|registration/vendor|registration/smtp)(?:/|$) - [F,L,NC]
 
+# Serve a useful, crawl-safe error page for missing resources.
+ErrorDocument 404 /404.html
+
 # Add baseline browser protections where Apache allows headers.
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
