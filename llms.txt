@@ -1,0 +1,27 @@
+# Weblogr
+
+> Weblogr is a Core PHP/MySQL publishing platform created as a Final Year Project and modernized as a portfolio-grade web application.
+
+## Creator
+
+Muhammad Talha — Software Engineer specializing in PHP, Laravel and full-stack web development.
+
+- Portfolio: https://imiantalha.vercel.app/
+- GitHub: https://github.com/imiantalha
+- Fiverr: https://www.fiverr.com/imiantalha
+- Upwork: https://www.upwork.com/freelancers/~0129afd82850749f05?viewMode=1
+
+## Project
+
+Weblogr provides registration, profiles, publishing, drafts, categories, search, comments, likes, follows, notifications, reporting and administrator moderation.
+
+## Technology
+
+Core PHP, MySQL/MariaDB, MySQLi, HTML, CSS, JavaScript, PHPMailer and GitHub Actions.
+
+## Public resources
+
+- Landing page: /
+- Creator profile: /seo-links.html
+- Sitemap: /sitemap.php
+- Crawler policy: /robots.txt
