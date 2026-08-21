@@ -1,8 +1,4 @@
 {
-    "name": "imiantalha/weblogr",
-    "description": "Weblogr community blogging platform built with PHP and MySQL.",
-    "type": "project",
-    "license": "proprietary",
     "require": {
         "phpmailer/phpmailer": "^6.9"
     }
