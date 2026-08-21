@@ -1,4 +1,4 @@
-name: PHP Lint
+name: PHP Quality
 
 on:
   push:
@@ -17,6 +17,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: mysqli, fileinfo
+
+      - name: Validate Composer configuration
+        run: composer validate --working-dir=registration --strict
 
       - name: Lint application PHP files
         shell: bash
