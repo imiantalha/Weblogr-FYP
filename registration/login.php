@@ -1,75 +1,71 @@
 <?php
+
+declare(strict_types=1);
+
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
 session_start();
 
-// Redirect if the user is already logged in
-if (isset($_SESSION["username"])) {
-    header("Location: profile.php");
+if (isset($_SESSION['username'])) {
+    header('Location: profile.php');
     exit;
 }
 
-$password_exist = false;
-$username_exist = false;
-$account_not_verified = false;
+$login_error = false;
 
-if (isset($_POST['username'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require '../database/db.php';
 
-    // Database con
-    include '../database/db.php';
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
+    $user_type = (string) ($_POST['user_type'] ?? '');
 
-    //escaping special characters in a string 
-    $username = mysqli_real_escape_string($con, $_POST['username']);
-    $password = mysqli_real_escape_string($con, $_POST['password']);
-    $user_type = mysqli_real_escape_string($con, $_POST['user_type']);
-
-    $username = mysqli_real_escape_string($con, $_POST['username']);
-    $password = $_POST['password']; 
-    $user_type = mysqli_real_escape_string($con, $_POST['user_type']);
-    
-    $select = "SELECT username, password, is_verified, user_type, user_id FROM users WHERE username = ? AND user_type = ?";
-    $statement = $con->prepare($select);
-    $statement->bind_param("ss", $username, $user_type); 
-    $statement->execute();
-    $result = $statement->get_result();
-    
-    if ($result->num_rows > 0) {
-        while( $row = $result->fetch_assoc() ) {
-          if (password_verify($password, $row['password'])) {
-            if ($row['is_verified']) {
-                $_SESSION["username"] = $username;
-                $_SESSION["user_id"] = $row['user_id'];
-                // Redirect on successful login
-                header("Location: ../posts/index.php");
-                exit;
-            } else {
-                $account_not_verified = true;
-            }
-          } else {
-            $incorrect_password = true;
-          }
-        }
-        
+    if ($username === '' || $password === '' || !in_array($user_type, ['Common user', 'Admin'], true)) {
+        $login_error = true;
     } else {
-        $username_not_found = true;
-    }
-    
+        $statement = $con->prepare(
+            'SELECT username, password, is_verified, user_type, user_id
+             FROM users
+             WHERE username = ? AND user_type = ?
+             LIMIT 1'
+        );
+        $statement->bind_param('ss', $username, $user_type);
+        $statement->execute();
+        $result = $statement->get_result();
+        $user = $result->fetch_assoc();
 
-    if (!$username_exist || !$password_exist) {
-        echo '<script>alert("Username or password is incorrect.");</script>';
+        if (
+            $user !== null
+            && (int) $user['is_verified'] === 1
+            && password_verify($password, $user['password'])
+        ) {
+            session_regenerate_id(true);
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['user_id'] = (int) $user['user_id'];
+            $_SESSION['user_type'] = $user['user_type'];
+
+            header('Location: ../posts/index.php');
+            exit;
+        }
+
+        $login_error = true;
+        $statement->close();
     }
 
-    $statement->close();
     $con->close();
 }
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGIN</title> 
+  <title>LOGIN</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
 </head>
@@ -84,23 +80,27 @@ if (isset($_POST['username'])) {
       <div class="wrapper">
         <div class="title">Login Form</div>
 
+        <?php if ($login_error): ?>
+          <p role="alert">Username or password is incorrect, or the account is not verified.</p>
+        <?php endif; ?>
+
         <form name="sign-in" method="post">
           <div class="row">
             <i class="fas fa-user"></i>
-            <input type="text" placeholder="Username" required="" name="username" id="username">
+            <input type="text" placeholder="Username" required name="username" id="username" autocomplete="username">
           </div>
           <div class="row">
             <i class="fas fa-lock"></i>
-            <input type="password" placeholder="Password" required="" name="password" id="password">
+            <input type="password" placeholder="Password" required name="password" id="password" autocomplete="current-password">
           </div>
           <div class="row">
-            <select name="user_type" id="" class="row" style="width: 100%; text-align: center; font-size: 18px; color: #999;">
+            <select name="user_type" class="row" style="width: 100%; text-align: center; font-size: 18px; color: #999;">
               <option value="Common user" selected>USER</option>
               <option value="Admin">ADMIN</option>
             </select>
           </div>
           <div class="row button">
-            <input type="submit" value="Login" name="login"> 
+            <input type="submit" value="Login" name="login">
             <a href="forgot_password.php" style="float:right;">Forgot Password?</a><br>
           </div>
           <br>
@@ -108,6 +108,6 @@ if (isset($_POST['username'])) {
         </form>
       </div>
     </div>
-  </div>  
+  </div>
 </body>
 </html>
