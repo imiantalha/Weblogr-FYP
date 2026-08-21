@@ -1,125 +1,51 @@
 <?php
-session_start();
 
-if (!isset($_SESSION["username"])) {
-    header("Location: profile.php");
-    exit;
-}
+declare(strict_types=1);
 
-include '../database/db.php';
+require '../includes/security.php';
+$user_id = require_authentication();
+require '../database/db.php';
 
-// Retrieve user_id based on the username
-$username = $_SESSION["username"];
-$user_id = $_SESSION["user_id"];
+$error = null;
+$profile = ['full_name' => '', 'bio' => '', 'profile_picture' => ''];
+$statement = $con->prepare('SELECT full_name, bio, profile_picture FROM profile WHERE user_id = ? LIMIT 1');
+$statement->bind_param('i', $user_id); $statement->execute();
+$existing = $statement->get_result()->fetch_assoc(); $statement->close();
+if ($existing) $profile = $existing;
 
-// Check if profile data already exists for the user
-$sql_check_profile = "SELECT * FROM profile WHERE user_id = $user_id";
-$result_check_profile = $con->query($sql_check_profile);
-if ($result_check_profile && $result_check_profile->num_rows > 0) {
-    // Profile data exists, update the existing record
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $full_name = $_POST["full_name"];
-        $bio = $_POST["bio"];
-
-        // Handle profile picture upload
-        if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] != UPLOAD_ERR_NO_FILE) {
-            $filename = $_FILES['profile_picture']['name'];
-            $tempname = $_FILES['profile_picture']['tmp_name'];
-            move_uploaded_file($tempname, "../uploads/" . $filename);
-            $profile_picture = $filename;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+    $full_name = trim((string) ($_POST['full_name'] ?? ''));
+    $bio = trim((string) ($_POST['bio'] ?? ''));
+    if ($full_name === '' || mb_strlen($full_name) > 100) $error = 'Please enter a valid name.';
+    elseif (mb_strlen($bio) > 1000) $error = 'Bio must be 1000 characters or fewer.';
+    else {
+        $profile_picture = $profile['profile_picture'];
+        $new_file = null;
+        if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['profile_picture']['error'] !== UPLOAD_ERR_OK || (int) $_FILES['profile_picture']['size'] > 5 * 1024 * 1024) $error = 'Profile image must be 5 MB or smaller.';
+            else {
+                $mime = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['profile_picture']['tmp_name']);
+                $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+                if (!isset($extensions[$mime])) $error = 'Only JPG, PNG, GIF, and WebP images are allowed.';
+                else { $new_file = bin2hex(random_bytes(16)) . '.' . $extensions[$mime]; $destination = dirname(__DIR__) . '/uploads/' . $new_file; if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $destination)) $error = 'Unable to save the profile image.'; else $profile_picture = $new_file; }
+            }
         }
-
-        // Update name in the profile table if not empty
-        if (!empty($full_name)) {
-            $sql_update_name = "UPDATE profile SET full_name = ? WHERE user_id = ?";
-            $stmt_update_name = $con->prepare($sql_update_name);
-            $stmt_update_name->bind_param("si", $full_name, $user_id);
-            $stmt_update_name->execute();
-            $stmt_update_name->close();
+        if ($error === null) {
+            if ($existing) {
+                $statement = $con->prepare('UPDATE profile SET full_name = ?, bio = ?, profile_picture = ? WHERE user_id = ?');
+                $statement->bind_param('sssi', $full_name, $bio, $profile_picture, $user_id);
+            } else {
+                $statement = $con->prepare('INSERT INTO profile (user_id, full_name, bio, profile_picture) VALUES (?, ?, ?, ?)');
+                $statement->bind_param('isss', $user_id, $full_name, $bio, $profile_picture);
+            }
+            $statement->execute(); $statement->close(); $con->close();
+            header('Location: profile.php'); exit;
         }
-
-        // Update bio in the profile table if not empty
-        if (!empty($bio)) {
-            $sql_update_bio = "UPDATE profile SET bio = ? WHERE user_id = ?";
-            $stmt_update_bio = $con->prepare($sql_update_bio);
-            $stmt_update_bio->bind_param("si", $bio, $user_id);
-            $stmt_update_bio->execute();
-            $stmt_update_bio->close();
-        }
-
-        // Update pic in the profile table if not empty
-        if (isset($profile_picture)) {
-            $sql_update_pic = "UPDATE profile SET profile_picture = ? WHERE user_id = ?";
-            $stmt_update_pic = $con->prepare($sql_update_pic);
-            $stmt_update_pic->bind_param("si", $profile_picture, $user_id);
-            $stmt_update_pic->execute();
-            $stmt_update_pic->close();
-        }
-
-        header("Location: profile.php");
-        exit;
-    }
-
-} else {
-    // Profile data does not exist, insert a new record
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $full_name = $_POST["full_name"];
-        $bio = $_POST["bio"];
-
-        // Handle profile picture upload
-        if (isset($_FILES['profile_picture'])) {
-            $filename = $_FILES['profile_picture']['name'];
-            $tempname = $_FILES['profile_picture']['tmp_name'];
-            move_uploaded_file($tempname, "../uploads/" . $filename);
-        }
-
-        // Insert data into profile table
-        $sql_insert_profile = "INSERT INTO profile (user_id, full_name, bio, profile_picture) VALUES (?, ?, ?, ?)";
-        $stmt_insert_profile = $con->prepare($sql_insert_profile);
-        $stmt_insert_profile->bind_param("isss", $user_id, $full_name, $bio, $filename);
-        if ($stmt_insert_profile->execute()) {
-            header("Location: profile.php");
-            exit;
-        } else {
-            echo "Error inserting profile: " . $stmt_insert_profile->error;
-        }
-        $stmt_insert_profile->close();
+        if ($new_file !== null && isset($destination) && is_file($destination)) unlink($destination);
     }
 }
-
+$csrf = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
 $con->close();
 ?>
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Profile</title>
-    <link rel="stylesheet" href="../registration/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
-</head>
-<body> 
-
-    <?php include '../posts/sidebar.php'; ?>
-    
-    <h1>Edit Profile</h1>
-    <div class="edit">
-        <div class="profile-container">
-            <form action="" method="POST" enctype="multipart/form-data">
-                <label for="full_name">Full Name:</label><br>
-                <input type="text" id="full_name" name="full_name"><br><br>
-                
-                <label for="bio">Bio:</label><br>
-                <textarea id="bio" name="bio" rows="5" cols="45"></textarea><br><br>
-                
-                <label for="profile_picture">Profile Picture:</label><br>
-                <input type="file" id="profile_picture" name="profile_picture"><br><br>
-                
-                <input class="profile-btn" type="submit" value="Submit">
-            </form>
-        </div>
-    </div>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Edit Profile | Weblogr</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/></head><body><?php include '../posts/sidebar.php'; ?><main class="container"><h1>Edit Profile</h1><div class="profile-container"><form action="" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>"><?php if ($error): ?><p role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?><label for="full_name">Full Name</label><input type="text" id="full_name" name="full_name" maxlength="100" value="<?php echo htmlspecialchars((string) $profile['full_name'], ENT_QUOTES, 'UTF-8'); ?>" required><br><label for="bio">Bio</label><textarea id="bio" name="bio" rows="5" maxlength="1000"><?php echo htmlspecialchars((string) $profile['bio'], ENT_QUOTES, 'UTF-8'); ?></textarea><br><label for="profile_picture">Profile Picture</label><input type="file" id="profile_picture" name="profile_picture" accept="image/jpeg,image/png,image/gif,image/webp"><br><button class="profile-btn" type="submit">Save Changes</button></form></div></main></body></html>
