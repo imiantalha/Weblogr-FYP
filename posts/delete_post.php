@@ -1,42 +1,76 @@
 <?php
-// Include database connection
-include '../database/db.php';
 
-// Check if the post ID is provided
-if (isset($_GET['blog_id'])) {
-    $blog_id = $_GET['blog_id'];
-    
-    $sql = "DELETE FROM comments WHERE blog_id = $blog_id";
-    if ($con->query($sql) === TRUE) {
-        // Delete the blog post from the database
-        $sql = "DELETE FROM blogs WHERE blog_id= $blog_id";
-        if ($con->query($sql) === TRUE) {
-            
-            header("Location: user_posts.php");
-            exit();
-        } else {
-            echo "Error deleting post: " . $con->error;
-        }
-        } else {
-        echo "Post ID not provided.";
-        }
+declare(strict_types=1);
+
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../registration/login.php');
+    exit;
 }
 
-    // Check if the post draft_id is provided delete draft..
-if (isset($_GET['draft_id'])) {
-    $draft_id = $_GET['draft_id'];
+require '../database/db.php';
 
-        // Delete the draft post from the database
-        $sql = "DELETE FROM draft_posts WHERE draft_id= $draft_id";
-        if ($con->query($sql) === TRUE) {
-            
-            header("Location: draft_posts.php");
-            exit();
-        } else {
-            echo "Error deleting draft: " . $con->error;
+$user_id = (int) $_SESSION['user_id'];
+$blog_id = filter_input(INPUT_GET, 'blog_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$draft_id = filter_input(INPUT_GET, 'draft_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+try {
+    if ($blog_id !== false && $blog_id !== null) {
+        $con->begin_transaction();
+
+        $statement = $con->prepare('DELETE FROM comments WHERE blog_id = ? AND EXISTS (SELECT 1 FROM blogs WHERE blog_id = ? AND user_id = ?)');
+        $statement->bind_param('iii', $blog_id, $blog_id, $user_id);
+        $statement->execute();
+        $statement->close();
+
+        $statement = $con->prepare('DELETE FROM blogs WHERE blog_id = ? AND user_id = ?');
+        $statement->bind_param('ii', $blog_id, $user_id);
+        $statement->execute();
+        $deleted = $statement->affected_rows;
+        $statement->close();
+
+        if ($deleted !== 1) {
+            throw new RuntimeException('Post not found or access denied.');
         }
-    } else {
-        echo "Draft ID not provided.";
-}
 
-?>
+        $con->commit();
+        $con->close();
+        header('Location: user_posts.php');
+        exit;
+    }
+
+    if ($draft_id !== false && $draft_id !== null) {
+        $statement = $con->prepare('DELETE FROM draft_posts WHERE draft_id = ? AND user_id = ?');
+        $statement->bind_param('ii', $draft_id, $user_id);
+        $statement->execute();
+        $deleted = $statement->affected_rows;
+        $statement->close();
+        $con->close();
+
+        if ($deleted !== 1) {
+            http_response_code(404);
+            exit('Draft not found or access denied.');
+        }
+
+        header('Location: draft_posts.php');
+        exit;
+    }
+
+    http_response_code(400);
+    echo 'A valid post or draft ID is required.';
+} catch (Throwable $exception) {
+    if ($con->errno === 0) {
+        $con->rollback();
+    }
+    $con->close();
+    error_log('Delete failed: ' . $exception->getMessage());
+    http_response_code(500);
+    echo 'Unable to delete the requested content.';
+}
