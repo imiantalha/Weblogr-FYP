@@ -32,7 +32,7 @@ if ($user === null) {
 
 $is_admin = $user['user_type'] === 'Admin';
 
-if ($blog_id !== false && $blog_id !== null) {
+if ($blog_id) {
     try {
         $con->begin_transaction();
         $statement = $con->prepare('SELECT user_id FROM blogs WHERE blog_id = ? LIMIT 1');
@@ -41,11 +41,17 @@ if ($blog_id !== false && $blog_id !== null) {
         $post = $statement->get_result()->fetch_assoc();
         $statement->close();
 
-        if ($post === null || (!$is_admin && (int) $post['user_id'] !== $user_id)) {
+        if ($post === null || (!$is_admin && (int)$post['user_id'] !== $user_id)) {
             throw new RuntimeException('Post not found or access denied.');
         }
 
         $statement = $con->prepare('DELETE FROM comments WHERE blog_id = ?');
+        $statement->bind_param('i', $blog_id);
+        $statement->execute();
+        $statement->close();
+
+        // Remove dependent interaction data before deleting the post.
+        $statement = $con->prepare('DELETE FROM post_likes WHERE blog_id = ?');
         $statement->bind_param('i', $blog_id);
         $statement->execute();
         $statement->close();
@@ -74,7 +80,7 @@ if ($blog_id !== false && $blog_id !== null) {
     }
 }
 
-if ($draft_id !== false && $draft_id !== null) {
+if ($draft_id) {
     $statement = $con->prepare('DELETE FROM draft_posts WHERE draft_id = ? AND user_id = ?');
     $statement->bind_param('ii', $draft_id, $user_id);
     $statement->execute();
