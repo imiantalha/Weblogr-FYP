@@ -1,157 +1,143 @@
-<?php 
-    session_start();
+<?php
 
-    if(!isset($_SESSION['username'])) {
-        header('Locaton: ../registration/login.php');
-        exit;
-    }
-    include '../database/db.php';
+declare(strict_types=1);
+
+require '../includes/security.php';
+require_authentication();
+require '../database/db.php';
+
+function e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+
+$csrf = e(csrf_token());
+$category = trim((string) ($_GET['category'] ?? ''));
+$username_filter = trim((string) ($_GET['username'] ?? ''));
+$sort = (string) ($_GET['sort'] ?? '');
+$popularity = (string) ($_GET['popularity'] ?? '');
+$allowed_categories = ['education', 'technology', 'travel', 'food', 'fashion', 'sport', 'other'];
+$allowed_sorts = ['newest_first', 'oldest_first'];
+$allowed_popularity = ['popular', 'unpopular'];
+
+$users = $con->query('SELECT username FROM users ORDER BY username ASC');
+
+$sql = 'SELECT b.blog_id, b.title, b.created_date, b.image, b.description, b.likes, b.user_id, u.username
+        FROM blogs b JOIN users u ON b.user_id = u.user_id';
+$conditions = [];
+$params = [];
+types = '';
+
+if (in_array($category, $allowed_categories, true)) {
+    $conditions[] = 'b.category = ?';
+    $params[] = $category;
+    $types .= 's';
+}
+if ($username_filter !== '') {
+    $conditions[] = 'u.username = ?';
+    $params[] = $username_filter;
+    $types .= 's';
+}
+if ($conditions) {
+    $sql .= ' WHERE ' . implode(' AND ', $conditions);
+}
+
+if ($popularity === 'popular') {
+    $sql .= ' ORDER BY b.likes DESC, b.created_date DESC';
+} elseif ($popularity === 'unpopular') {
+    $sql .= ' ORDER BY b.likes ASC, b.created_date DESC';
+} elseif ($sort === 'oldest_first') {
+    $sql .= ' ORDER BY b.created_date ASC';
+} else {
+    $sql .= ' ORDER BY b.created_date DESC';
+}
+
+$statement = $con->prepare($sql);
+if ($params) {
+    $statement->bind_param($types, ...$params);
+}
+$statement->execute();
+$result = $statement->get_result();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weblogr</title>
-    <script src="index.js"></script>
+    <script src="index.js" defer></script>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
-    <script src="../scripts/script.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
+    <script src="../scripts/script.js" defer></script>
 </head>
 <body>
-
 <?php include 'sidebar.php'; ?>
-    
 <div class="content">
     <div class="all-posts-container">
-        <form action="" method="GET">
-            <!-- Dropdown for filtering by category -->
-            <select name="category" id="category" style="width: 155px;" class="filter">
-                <option value="">--By Category--</option>
-                <option value="education">Education</option>
-                <option value="technology">Technology</option>
-                <option value="travel">Travel</option>
-                <option value="food">Food</option>
-                <option value="fashion">Fashion</option>
-                <option value="sport">Sports</option>
-                <option value="other">Others</option>
+        <form action="index.php" method="get" class="post-filters">
+            <select name="category" id="category" class="filter">
+                <option value="">By Category</option>
+                <?php foreach ($allowed_categories as $option): ?>
+                    <option value="<?php echo e($option); ?>" <?php echo $category === $option ? 'selected' : ''; ?>><?php echo e(ucfirst($option)); ?></option>
+                <?php endforeach; ?>
             </select>
-
-            <!-- Dropdown for filtering by username -->
-            <select name="username" id="username" style="width: 115px;" class="filter">
-                <option value="">--By User--</option>
-                <?php
-                $select = "SELECT username FROM users";
-                $statement = $con->prepare($select);
-                $statement->execute();
-                $result = $statement->get_result();
-                
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        $username = $row['username'];
-                        echo "<option value='$username'>" . strtoupper($username) . "</option>";
-                    }
-                } else {
-                    echo "<option value=''>No users found</option>";
-                }
-                ?>
+            <select name="username" id="username" class="filter">
+                <option value="">By User</option>
+                <?php while ($user = $users->fetch_assoc()): ?>
+                    <option value="<?php echo e($user['username']); ?>" <?php echo $username_filter === $user['username'] ? 'selected' : ''; ?>><?php echo e(strtoupper($user['username'])); ?></option>
+                <?php endwhile; ?>
             </select>
-
-            <!-- Dropdown for sorting by date -->
-            <select name="sort" id="sort" style="width: 120px;" class="filter">
-                <option value="">--By Date--</option>
-                <option value="newest_first">Newest First</option>
-                <option value="oldest_first">Oldest First</option>
+            <select name="sort" id="sort" class="filter">
+                <option value="">By Date</option>
+                <option value="newest_first" <?php echo $sort === 'newest_first' ? 'selected' : ''; ?>>Newest First</option>
+                <option value="oldest_first" <?php echo $sort === 'oldest_first' ? 'selected' : ''; ?>>Oldest First</option>
             </select>
-            
-            <!-- Dropdown for popularity -->
-            <select name="popularity" id="popularity" style="width: 135px;" class="filter">
-                <option value="">--Popularity--</option>
-                <option value="popular">Most Popular</option>
-                <option value="unpopular">Less Popular</option>
+            <select name="popularity" id="popularity" class="filter">
+                <option value="">Popularity</option>
+                <option value="popular" <?php echo $popularity === 'popular' ? 'selected' : ''; ?>>Most Popular</option>
+                <option value="unpopular" <?php echo $popularity === 'unpopular' ? 'selected' : ''; ?>>Less Popular</option>
             </select>
-
-            <!-- Submit button for applying filters -->
             <button type="submit" class="submit">Apply Filter</button>
         </form>
 
-        <?php
-
-        // Default SQL query to fetch all blog posts
-        $sql = "SELECT b.blog_id, b.title, b.created_date, b.image, b.description, b.likes, b.user_id, u.username 
-                FROM blogs b 
-                JOIN users u ON b.user_id = u.user_id";
-
-        // Check if a category is selected
-        if (isset($_GET['category']) && !empty($_GET['category'])) {
-            $selected_category = mysqli_real_escape_string($con, $_GET['category']);
-            $sql .= " WHERE b.category = '$selected_category'";
-        }        
-
-        // Check if a user is selected
-        if (isset($_GET['username']) && !empty($_GET['username'])) {
-            $selected_user = mysqli_real_escape_string($con, $_GET['username']);
-            $sql .= " AND u.username = '$selected_user'";
-        }        
-
-        // Check if a sorting option is selected
-        if (isset($_GET['popularity']) && !empty($_GET['popularity'])) {
-            $popularity_option = mysqli_real_escape_string($con, $_GET['popularity']);
-            switch ($popularity_option) {
-                case 'popular':
-                    $sql .= " ORDER BY b.likes DESC, b.created_date DESC";
-                    break;
-                case 'unpopular':
-                    $sql .= " ORDER BY b.likes ASC, b.created_date DESC";
-                    break;
-            }
-        } elseif (isset($_GET['sort']) && !empty($_GET['sort'])) {
-            $sort_option = mysqli_real_escape_string($con, $_GET['sort']);
-            switch ($sort_option) {
-                case 'newest_first':
-                    $sql .= " ORDER BY b.created_date DESC";
-                    break;
-                case 'oldest_first':
-                    $sql .= " ORDER BY b.created_date ASC";
-                    break;
-            }
-        } else {
-            // Default sorting by date if no sorting option is provided
-            $sql .= " ORDER BY b.created_date DESC";
-        }
-        
-        $result = $con->query($sql);
-
-        if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                echo "<div class='post-container'>";
-                echo "<span id='display-title'>" . $row["title"] . "</span><br>";
-                echo "<div class='date-container'>";
-                echo "<span>" . date('d/m/Y', strtotime($row["created_date"])) . "</span><br>"; 
-                echo "</div>";
-                if($row["image"]) {
-                    echo "<img id='display-image' src='../images/" . $row["image"] . "' alt='image'>";
-                }
-                echo "<div class='report'>";
-                echo "<span> <a href='report.php?blog_id={$row['blog_id']}&blogger_id={$row['user_id']}'> <i class='fas fa-exclamation-triangle fa-2x' title='Report'></i> </a></span>";
-                echo "</div>";
-                echo "<p id='display-para'><a href='blog_poster.php?user_id=" . $row['user_id'] . "'>@" . $row['username'] . "</a>: " . $row["description"] . "</p>";
-                echo "<div class='like-button'>";
-                echo '<a href="#" onclick="likeBlog(' . $row["blog_id"] . '); return false;"><i class="fas fa-thumbs-up fa-2x" title="Like ' . $row["likes"] . '"></i></a>';
-                echo "<a href='../comments/comments.php?blog_id=" . $row['blog_id'] . "' style='margin-left:15px'><i class='fas fa-comment fa-2x' title='Comment'></i></a>";
-                echo "</div>";
-                echo "</div>";                
-            }
-        } else {
-            echo "<center><span>No Blog Posts Found</span></center>";
-        }
-
-        $con->close();
-        ?>
+        <?php if ($result->num_rows > 0): ?>
+            <?php while ($row = $result->fetch_assoc()): ?>
+                <article class="post-container">
+                    <span id="display-title"><?php echo e((string) $row['title']); ?></span>
+                    <div class="date-container">
+                        <span><?php echo e(date('d/m/Y', strtotime($row['created_date']))); ?></span>
+                    </div>
+                    <?php if (!empty($row['image'])): ?>
+                        <img id="display-image" src="../images/<?php echo rawurlencode((string) $row['image']); ?>" alt="<?php echo e((string) $row['title']); ?>">
+                    <?php endif; ?>
+                    <div class="report">
+                        <a href="report.php?blog_id=<?php echo (int) $row['blog_id']; ?>&blogger_id=<?php echo (int) $row['user_id']; ?>" aria-label="Report post">
+                            <i class="fas fa-exclamation-triangle fa-2x" title="Report"></i>
+                        </a>
+                    </div>
+                    <p id="display-para">
+                        <a href="blog_poster.php?user_id=<?php echo (int) $row['user_id']; ?>">@<?php echo e((string) $row['username']); ?></a>:
+                        <?php echo nl2br(e((string) $row['description'])); ?>
+                    </p>
+                    <div class="like-button">
+                        <button type="button" class="icon-button" onclick="likeBlog(<?php echo (int) $row['blog_id']; ?>, '<?php echo $csrf; ?>')" aria-label="Like post">
+                            <i class="fas fa-thumbs-up fa-2x" title="Like"></i>
+                            <span id="like-count-<?php echo (int) $row['blog_id']; ?>"><?php echo (int) $row['likes']; ?></span>
+                        </button>
+                        <a href="../comments/comments.php?blog_id=<?php echo (int) $row['blog_id']; ?>" style="margin-left:15px" aria-label="Comments">
+                            <i class="fas fa-comment fa-2x" title="Comment"></i>
+                        </a>
+                    </div>
+                </article>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <div class="empty-state"><span>No Blog Posts Found</span></div>
+        <?php endif; ?>
     </div>
-    <br>
 </div>
-
+<?php
+$statement->close();
+$con->close();
+?>
 </body>
 </html>
