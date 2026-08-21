@@ -2,6 +2,13 @@
 
 Weblogr is a Core PHP/MySQL blogging platform developed as a Final Year Project and progressively modernized into a secure, maintainable portfolio application.
 
+**Creator:** Muhammad Talha — Software Engineer
+
+- **Portfolio:** https://imiantalha.vercel.app/
+- **GitHub:** https://github.com/imiantalha
+- **Fiverr:** https://www.fiverr.com/imiantalha
+- **Upwork:** https://www.upwork.com/freelancers/~0129afd82850749f05?viewMode=1
+
 ## Technology
 
 - **Backend:** Core PHP 8.x
@@ -45,6 +52,12 @@ Weblogr is a Core PHP/MySQL blogging platform developed as a Final Year Project 
 - Standard HTTP security headers
 - Database integrity constraints and targeted indexes
 
+## SEO & Discoverability
+
+The public site includes descriptive metadata, Open Graph and Twitter metadata, crawler directives, a branded web manifest, Schema.org structured data, creator identity links, and a deployment-aware sitemap endpoint.
+
+The public creator profile is available at [`seo-links.html`](seo-links.html), connecting Weblogr with Muhammad Talha's portfolio, GitHub, Fiverr and Upwork profiles. Before production launch, submit `/sitemap.php` to Google Search Console and Bing Webmaster Tools after the final public domain is configured.
+
 ## Repository Structure
 
 ```text
@@ -61,6 +74,7 @@ Weblogr-FYP/
 ├── robots.txt         # Search crawler directives
 ├── sitemap.php        # Deployment-aware XML sitemap
 ├── site.webmanifest   # Web app metadata
+├── humans.txt         # Creator and project credits
 └── index.html         # Public landing page
 ```
 
@@ -83,8 +97,6 @@ cd Weblogr-FYP
 
 ### 2. Install dependencies
 
-The legacy Composer configuration currently lives under `registration/`:
-
 ```bash
 cd registration
 composer install
@@ -93,28 +105,15 @@ cd ..
 
 ### 3. Recreate the database
 
-The canonical development schema is now a single clean bootstrap file. It intentionally contains no application/sample records:
+The canonical development schema is a single clean bootstrap file with no application/sample records:
 
 ```bash
 mysql -u root -p weblogr < database/weblogr.sql
 ```
 
-Alternatively, import `database/weblogr.sql` from phpMyAdmin. The file creates the required tables and constraints from scratch, so the separate 2026 migration files do not need to be imported for a fresh database.
+Alternatively, import `database/weblogr.sql` from phpMyAdmin.
 
-### 4. Configure local database credentials
-
-The legacy connection layer currently contains the database configuration. Use local development values only and keep production credentials outside source control.
-
-```text
-DB_HOST=localhost
-DB_NAME=weblogr
-DB_USER=root
-DB_PASSWORD=
-```
-
-> The next architectural cleanup is to move the remaining connection/mail configuration behind environment-based configuration.
-
-### 5. Run
+### 4. Run
 
 With XAMPP, start Apache and MySQL and open:
 
@@ -122,37 +121,15 @@ With XAMPP, start Apache and MySQL and open:
 http://localhost/Weblogr-FYP/
 ```
 
-Or with PHP's built-in server:
+Or:
 
 ```bash
 php -S localhost:8000
 ```
 
-Open `http://localhost:8000`.
-
-## SEO & Discoverability
-
-The public landing page includes descriptive metadata, Open Graph and Twitter metadata, crawler directives, a branded web manifest, and Schema.org structured data identifying Weblogr and its creator, Muhammad Talha.
-
-Before production launch, replace the deployment host used by the sitemap with the canonical public domain and submit the sitemap to Google Search Console and Bing Webmaster Tools. Do not use a localhost URL as the production canonical domain.
-
 ## Development Workflow
 
-Substantial changes use a dedicated branch and pull request:
-
-```text
-feature/<name>
-    ↓
-focused commits
-    ↓
-Pull Request
-    ↓
-review / fixes
-    ↓
-merge into main
-    ↓
-close PR
-```
+Substantial changes use a dedicated branch and pull request, followed by review and merge into `main`.
 
 Every project commit should include:
 
@@ -160,33 +137,17 @@ Every project commit should include:
 Co-authored-by: Muhammad Talha <muhammadtalha.codes@gmail.com>
 ```
 
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for database rebuild, validation and security checklists.
-
 ## CI
 
-GitHub Actions validates PHP syntax for application files on pushes and pull requests targeting `main`. Vendor copies and legacy bundled SMTP libraries are excluded from the lint job.
+GitHub Actions validates PHP syntax for application files on pushes and pull requests targeting `main`.
 
-## Architecture Roadmap
+## Architecture
 
 Weblogr remains Core PHP while moving toward a clearer layered architecture:
 
 ```text
-Request
-  ↓
-Entry point / routing
-  ↓
-Authentication + Authorization + CSRF
-  ↓
-Controller
-  ↓
-Service
-  ↓
-Repository / Database
-  ↓
-View or JSON response
+Request → Authentication / Authorization / CSRF → Controller → Service → Repository / Database → View / JSON
 ```
-
-The remaining modernization work focuses on extracting duplicated business logic, strengthening automated tests, improving observability, and moving environment configuration out of source files.
 
 ## Academic Project
 
