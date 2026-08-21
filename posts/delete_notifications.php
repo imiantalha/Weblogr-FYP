@@ -1,28 +1,33 @@
 <?php
-include '../database/db.php';
 
+declare(strict_types=1);
+
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
 session_start();
-$user_id = $_SESSION['user_id'];
 
-// Check if the delete_all button is clicked
-if (isset($_POST['delete_all'])) {
-    
-    $sql_delete = "DELETE FROM notifications WHERE user_id = ?";
-    $stmt_delete = $con->prepare($sql_delete);
-    $stmt_delete->bind_param("i", $user_id);
-
-    // Execute delete statement
-    if (!$stmt_delete->execute()) {
-        die('Error executing delete statement: ' . $stmt_delete->error);
-    }
-    $stmt_delete->close();
-
-    header("Location: notifications.php");
-    exit();
-} else {
-    // If button is not clicked
-    header("Location: notifications.php");
-    exit();
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../registration/login.php');
+    exit;
 }
 
-?>
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['delete_all'])) {
+    header('Location: notifications.php');
+    exit;
+}
+
+require '../database/db.php';
+$user_id = (int) $_SESSION['user_id'];
+
+$statement = $con->prepare('DELETE FROM notifications WHERE user_id = ?');
+$statement->bind_param('i', $user_id);
+$statement->execute();
+$statement->close();
+$con->close();
+
+header('Location: notifications.php');
+exit;
