@@ -1,0 +1,17 @@
+{
+  "name": "Weblogr",
+  "short_name": "Weblogr",
+  "description": "A modern publishing platform for writers to share ideas, discover stories and connect with readers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#101828",
+  "icons": [
+    {
+      "src": "assets/weblogr-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

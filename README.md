@@ -50,7 +50,7 @@ Weblogr is a Core PHP/MySQL blogging platform developed as a Final Year Project 
 ```text
 Weblogr-FYP/
 ├── comments/          # Comments and interactions
-├── database/          # Connection, schema and migrations
+├── database/          # Connection and fresh schema
 ├── docs/              # FYP documentation and development guide
 ├── includes/          # Shared security and notification helpers
 ├── posts/             # Feed, posts, drafts, profiles, moderation and notifications
@@ -58,6 +58,9 @@ Weblogr-FYP/
 ├── styles/            # Shared styling
 ├── uploads/           # Application upload assets
 ├── .github/workflows/ # CI validation
+├── robots.txt         # Search crawler directives
+├── sitemap.php        # Deployment-aware XML sitemap
+├── site.webmanifest   # Web app metadata
 └── index.html         # Public landing page
 ```
 
@@ -90,15 +93,13 @@ cd ..
 
 ### 3. Recreate the database
 
-For a clean development database:
+The canonical development schema is now a single clean bootstrap file. It intentionally contains no application/sample records:
 
 ```bash
 mysql -u root -p weblogr < database/weblogr.sql
-mysql -u root -p weblogr < database/migrations/2026_08_21_admin_moderation.sql
-mysql -u root -p weblogr < database/migrations/2026_08_21_platform_hardening.sql
 ```
 
-The migration files are part of the application contract. Do not rely on an old local database dump after pulling new feature work.
+Alternatively, import `database/weblogr.sql` from phpMyAdmin. The file creates the required tables and constraints from scratch, so the separate 2026 migration files do not need to be imported for a fresh database.
 
 ### 4. Configure local database credentials
 
@@ -115,11 +116,25 @@ DB_PASSWORD=
 
 ### 5. Run
 
+With XAMPP, start Apache and MySQL and open:
+
+```text
+http://localhost/Weblogr-FYP/
+```
+
+Or with PHP's built-in server:
+
 ```bash
 php -S localhost:8000
 ```
 
 Open `http://localhost:8000`.
+
+## SEO & Discoverability
+
+The public landing page includes descriptive metadata, Open Graph and Twitter metadata, crawler directives, a branded web manifest, and Schema.org structured data identifying Weblogr and its creator, Muhammad Talha.
+
+Before production launch, replace the deployment host used by the sitemap with the canonical public domain and submit the sitemap to Google Search Console and Bing Webmaster Tools. Do not use a localhost URL as the production canonical domain.
 
 ## Development Workflow
 
