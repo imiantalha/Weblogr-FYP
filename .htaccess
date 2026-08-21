@@ -14,4 +14,9 @@ RewriteRule ^(?:database|includes|registration/vendor|registration/smtp)(?:/|$) 
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+    # Static assets are versioned by Git changes, so they can be cached safely.
+    <FilesMatch "\.(?:css|js|svg|png|jpg|jpeg|gif|webp|ico|woff2?)$">
+        Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+    </FilesMatch>
 </IfModule>
