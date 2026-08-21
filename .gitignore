@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+
+# Local/editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Composer dependencies
+registration/vendor/
