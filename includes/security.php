@@ -42,11 +42,16 @@ function require_authentication(): int
     return (int)$_SESSION['user_id'];
 }
 
+function enforce_rate_limit(string $scope, string $identifier, int $maxAttempts, int $windowSeconds): void
+{
+    start_secure_session(); $now=time(); $key='rate_'.hash('sha256',$scope.'|'.strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));
+    $data=$_SESSION[$key]??['count'=>0,'started'=>$now]; if($now-(int)$data['started']>$windowSeconds)$data=['count'=>0,'started'=>$now];
+    if((int)$data['count'] >= $maxAttempts){http_response_code(429);exit('Too many requests. Please try again later.');} $data['count']++; $_SESSION[$key]=$data;
+}
+
 function enforce_login_rate_limit(string $identifier, int $maxAttempts=5, int $windowSeconds=900): void
 {
-    start_secure_session(); $now=time(); $key='login_attempts_'.hash('sha256',strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));
-    $data=$_SESSION[$key]??['count'=>0,'started'=>$now]; if($now-(int)$data['started']>$windowSeconds)$data=['count'=>0,'started'=>$now];
-    if((int)$data['count'] >= $maxAttempts){http_response_code(429);exit('Too many login attempts. Please try again later.');} $_SESSION[$key]=$data;
+    enforce_rate_limit('login', $identifier, $maxAttempts, $windowSeconds);
 }
 
 function record_failed_login(string $identifier): void
