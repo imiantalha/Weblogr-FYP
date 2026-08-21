@@ -1,60 +1,78 @@
 <?php
-// Include database connection
-include '../database/db.php';
 
+declare(strict_types=1);
+
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
 session_start();
-$username = strtoupper($_SESSION["username"]);
 
-// Check if the form data is submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Check if all required fields are filled
-    if (isset($_POST['blog_id'], $_POST['comment_text'])) {
-        // Sanitize input data
-        $blog_id = mysqli_real_escape_string($con, $_POST['blog_id']);
-        $commenter_id = mysqli_real_escape_string($con, $_POST['commenter_id']);
-        $comment_text = mysqli_real_escape_string($con, $_POST['comment_text']);
-        $comment_text = trim($comment_text);
-
-        //user_id of blog poster
-        $select_user_id = "SELECT user_id FROM blogs WHERE blog_id = ?";
-        $select_stmt = $con->prepare($select_user_id); 
-        $select_stmt->bind_param("i", $blog_id); 
-        $select_stmt->execute(); 
-        $result = $select_stmt->get_result(); 
-        $row = $result->fetch_assoc();
-        $user_id = $row['user_id'];
-
-        // Check if the comment text is not empty
-        if (!empty($comment_text)) {
-            // Insert the comment into the database
-            $save_comment = "INSERT INTO comments (blog_id, commenter_id, comment_text, comment_date) VALUES ('$blog_id', '$commenter_id', '$comment_text', NOW())";
-            if ($con->query($save_comment)) {
-                // Comment inserted successfully
-
-                $notification_content = "$username commented on your post (Id: $blog_id) <br> '$comment_text'";
-                $send_notification = "INSERT INTO notifications (content, user_id) VALUES (?, ?)";
-                $stmt = $con->prepare($send_notification);
-                $stmt->bind_param("si", $notification_content, $user_id);
-                $stmt->execute();
-                if(($stmt->affected_rows > 0)) {
-                    //on success
-                    header("Location: comments.php?blog_id=" . $blog_id);
-                    exit(); 
-                } else {
-                    // Error inserting notification
-                    echo "Error: " . $send_notification . "<br>" . $con->error;
-                }    
-            } else {
-                // Error inserting comment
-                echo "Error: " . $save_comment . "<br>" . $con->error;
-            }
-        } else {
-            // Comment text is empty, do not save it
-            echo "<script>alert('Comment text is empty. Please enter a comment.')</script>";
-            header("Location: comments.php?blog_id=" . $blog_id);
-        }
-    } else {
-        echo "Invalid request method.";
-    }
+if (!isset($_SESSION['user_id'], $_SESSION['username'])) {
+    header('Location: ../registration/login.php');
+    exit;
 }
-?>
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method not allowed.');
+}
+
+require '../database/db.php';
+
+$blog_id = filter_var($_POST['blog_id'] ?? 0, FILTER_VALIDATE_INT);
+$commenter_id = (int) $_SESSION['user_id'];
+$comment_text = trim((string) ($_POST['comment_text'] ?? ''));
+$username = strtoupper((string) $_SESSION['username']);
+
+if (!$blog_id || $comment_text === '' || mb_strlen($comment_text) > 2000) {
+    $con->close();
+    http_response_code(422);
+    exit('Invalid comment.');
+}
+
+try {
+    $con->begin_transaction();
+
+    $select = $con->prepare('SELECT user_id FROM blogs WHERE blog_id = ? LIMIT 1');
+    $select->bind_param('i', $blog_id);
+    $select->execute();
+    $blog = $select->get_result()->fetch_assoc();
+    $select->close();
+
+    if ($blog === null) {
+        throw new RuntimeException('Post not found.');
+    }
+
+    $insert = $con->prepare(
+        'INSERT INTO comments (blog_id, commenter_id, comment_text, comment_date)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP())'
+    );
+    $insert->bind_param('iis', $blog_id, $commenter_id, $comment_text);
+    $insert->execute();
+    $insert->close();
+
+    $notification_content = "$username commented on your post (Id: $blog_id): " . $comment_text;
+    $notification = $con->prepare('INSERT INTO notifications (content, user_id) VALUES (?, ?)');
+    $post_owner_id = (int) $blog['user_id'];
+    $notification->bind_param('si', $notification_content, $post_owner_id);
+    $notification->execute();
+    $notification->close();
+
+    $con->commit();
+    $con->close();
+
+    header('Location: comments.php?blog_id=' . $blog_id);
+    exit;
+} catch (Throwable $exception) {
+    $con->rollback();
+    $con->close();
+    error_log('Comment save failed: ' . $exception->getMessage());
+    http_response_code($exception->getMessage() === 'Post not found.' ? 404 : 500);
+    echo $exception->getMessage() === 'Post not found.'
+        ? 'Post not found.'
+        : 'Unable to save the comment.';
+}
