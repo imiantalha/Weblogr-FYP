@@ -64,6 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $statement->close();
             $con->close();
 
+            $_SESSION['otp_purpose'] = 'registration';
+            $_SESSION['otp_email'] = $email;
+            $_SESSION['otp_expires_at'] = time() + 600;
+
             require 'mail.php';
             exit;
         }
