@@ -1,76 +1,75 @@
 <?php
 
-$otp_match = false;
+declare(strict_types=1);
 
-if (isset($_GET['email']) && isset($_GET['reset'])) {
-    $email = $_GET['email'];
-    $reset = $_GET['reset'];
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
+session_start();
 
-    if (isset($_POST['otp1']) && isset($_POST['otp2']) && isset($_POST['otp3']) &&
-        isset($_POST['otp4']) && isset($_POST['otp5']) && isset($_POST['otp6'])) {
+$purpose = $_SESSION['otp_purpose'] ?? null;
+$email = $_SESSION['otp_email'] ?? null;
+$expires_at = (int) ($_SESSION['otp_expires_at'] ?? 0);
+$error_message = null;
 
-        // Validate OTP inputs
-        $digit1 = $_POST['otp1'];
-        $digit2 = $_POST['otp2'];
-        $digit3 = $_POST['otp3'];
-        $digit4 = $_POST['otp4'];
-        $digit5 = $_POST['otp5']; 
-        $digit6 = $_POST['otp6'];
-
-        $entered_otp = $digit1 . $digit2 . $digit3 . $digit4 . $digit5 . $digit6;
-
-        // Database connection
-        include '../database/db.php';
-
-        // Retrieve stored OTP
-        $select = ($reset == TRUE) ? "SELECT otp FROM users WHERE email = ? AND is_verified = 1" :
-                                        "SELECT otp FROM users WHERE email = ? AND is_verified = 0";
-        
-        $statement = $con->prepare($select);
-        $statement->bind_param("s", $email);
-        $statement->execute();
-        $result = $statement->get_result();
-
-        if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            $stored_otp = $row['otp'];
-
-            if ($entered_otp == $stored_otp) {
-
-                $delete_otp = "UPDATE users SET otp = NULL WHERE email = ?";
-                $delete_otp_statement = $con->prepare($delete_otp);
-                $delete_otp_statement->bind_param("s", $email);
-                $delete_otp_statement->execute();
-
-                if ($reset == TRUE) {                    
-                    header("Location: reset_password.php");
-                    exit;
-                }
-                // Mark the user as verified in the database
-                $update = "UPDATE users SET is_verified = 1 WHERE email = ?";
-                $update_statement = $con->prepare($update);
-                $update_statement->bind_param("s", $email);
-                $update_statement->execute();
-
-                $delete_otp_statement->execute();
-
-                $otp_match = true;
-                header("Location: success.php");
-                exit;  
-                
-            } else {
-                // Set OTP match flag to false
-                $otp_match = false;
-                $error_message = "Invalid OTP. Please try again.";
-            }
-        } else {
-            $error_message = "No user found with provided email.";
+if (!in_array($purpose, ['registration', 'password_reset'], true) || !is_string($email) || $expires_at < time()) {
+    $error_message = 'This verification code has expired. Please request a new code.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $digits = [];
+    for ($index = 1; $index <= 6; $index++) {
+        $digit = (string) ($_POST['otp' . $index] ?? '');
+        if (!preg_match('/^\d$/', $digit)) {
+            $error_message = 'Please enter all six OTP digits.';
+            break;
         }
+        $digits[] = $digit;
     }
-} else { 
-    $error_message = "Email or reset flag not provided for OTP verification. Please try again.";
-}
 
+    if ($error_message === null) {
+        $entered_otp = implode('', $digits);
+        require '../database/db.php';
+
+        $verified_condition = $purpose === 'password_reset' ? 1 : 0;
+        $statement = $con->prepare('SELECT user_id, otp FROM users WHERE email = ? AND is_verified = ? LIMIT 1');
+        $statement->bind_param('si', $email, $verified_condition);
+        $statement->execute();
+        $user = $statement->get_result()->fetch_assoc();
+        $statement->close();
+
+        if ($user === null || !hash_equals((string) $user['otp'], $entered_otp)) {
+            $error_message = 'Invalid OTP. Please try again.';
+        } else {
+            $user_id = (int) $user['user_id'];
+            $statement = $con->prepare('UPDATE users SET otp = NULL WHERE user_id = ?');
+            $statement->bind_param('i', $user_id);
+            $statement->execute();
+            $statement->close();
+
+            if ($purpose === 'password_reset') {
+                $_SESSION['password_reset_user_id'] = $user_id;
+                unset($_SESSION['otp_purpose'], $_SESSION['otp_email'], $_SESSION['otp_expires_at']);
+                $con->close();
+                header('Location: reset_password.php');
+                exit;
+            }
+
+            $statement = $con->prepare('UPDATE users SET is_verified = 1 WHERE user_id = ?');
+            $statement->bind_param('i', $user_id);
+            $statement->execute();
+            $statement->close();
+            $con->close();
+
+            unset($_SESSION['otp_purpose'], $_SESSION['otp_email'], $_SESSION['otp_expires_at']);
+            header('Location: success.php');
+            exit;
+        }
+
+        $con->close();
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -82,33 +81,25 @@ if (isset($_GET['email']) && isset($_GET['reset'])) {
     <script src="index.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
     <div class="otp-container">
         <h1>OTP Verification</h1>
         <h6>Please check your email, we've sent an OTP</h6>
 
-        <?php if (isset($error_message)) { ?>
-            <script> alert("<?php echo $error_message; ?>"); </script>
-        <?php } ?>
+        <?php if ($error_message !== null): ?>
+            <p role="alert"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php endif; ?>
 
         <form method="post">
             <div class="input-container">
-                <input type="number" name="otp1" class="otp-digit" min="0" max="9" maxlength="1" required oninput="manageFocus(this)">
-                <input type="number" name="otp2" class="otp-digit" min="0" max="9" maxlength="1" required oninput="manageFocus(this)">
-                <input type="number" name="otp3" class="otp-digit" min="0" max="9" maxlength="1" required oninput="manageFocus(this)">
-                <input type="number" name="otp4" class="otp-digit" min="0" max="9" maxlength="1" required oninput="manageFocus(this)">
-                <input type="number" name="otp5" class="otp-digit" min="0" max="9" maxlength="1" required oninput="manageFocus(this)">
-                <input type="number" name="otp6" class="otp-digit" min="0" max="9" maxlength="1" required oninput="manageFocus(this)">
+                <?php for ($index = 1; $index <= 6; $index++): ?>
+                    <input type="text" inputmode="numeric" pattern="[0-9]" name="otp<?php echo $index; ?>" class="otp-digit" maxlength="1" required autocomplete="one-time-code">
+                <?php endfor; ?>
             </div>
-
             <button type="submit" class="otp-button">Verify</button>
-            <br>
-            
         </form>
-        <a href="signup.php" class="resend-otp">Resend OTP</a>
-    </div>
 
+        <a href="signup.php" class="resend-otp">Back to signup</a>
+    </div>
 </body>
 </html>
