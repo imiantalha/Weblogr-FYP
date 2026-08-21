@@ -1,45 +1,52 @@
 <?php
 
-include '../database/db.php';
+declare(strict_types=1);
 
-$not_registered = false;
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
+session_start();
+require '../database/db.php';
 
-if(isset($_POST['email'])) {
-    $email = $_POST['email'];
+$message = null;
 
-    $select = "SELECT email, is_verified FROM users WHERE email = ?";
-    $statement = $con->prepare($select);
-    $statement->bind_param("s", $email);
-    $statement->execute();
-    $result = $statement->get_result();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = strtolower(trim((string) ($_POST['email'] ?? '')));
 
-    if ($result->num_rows > 0) {
-        while( $row = $result->fetch_assoc() ) {
-            if($row['is_verified'] == 1) {
-                $otp = mt_rand(100000, 999999);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $message = 'If the email is registered, a reset code will be sent.';
+    } else {
+        $statement = $con->prepare('SELECT user_id, is_verified FROM users WHERE email = ? LIMIT 1');
+        $statement->bind_param('s', $email);
+        $statement->execute();
+        $user = $statement->get_result()->fetch_assoc();
+        $statement->close();
 
-                $sql = "UPDATE users SET `otp` = ? WHERE email = ?";
-                $statement = $con->prepare($sql);
-                $statement->bind_param("ss", $otp, $email);
-                $statement->execute();
+        if ($user !== null && (int) $user['is_verified'] === 1) {
+            $otp = random_int(100000, 999999);
+            $statement = $con->prepare('UPDATE users SET otp = ? WHERE user_id = ?');
+            $user_id = (int) $user['user_id'];
+            $statement->bind_param('si', $otp, $user_id);
+            $statement->execute();
+            $statement->close();
 
-                require 'vendor/autoload.php';
-                // handle mail functions
-                $reset = TRUE;
-                include 'pass_mail.php';
+            $_SESSION['otp_purpose'] = 'password_reset';
+            $_SESSION['otp_email'] = $email;
+            $_SESSION['otp_expires_at'] = time() + 600;
 
-                echo "<script>alert('OTP sent to your email.');</script>";
-            } else {
-                $not_registered = true;
-            }
+            $con->close();
+            require 'pass_mail.php';
+            exit;
         }
-        
-        
-    } 
-} else {
-    echo "<center>Email not provided.</center>";
+
+        $message = 'If the email is registered, a reset code will be sent.';
+    }
 }
 
+$con->close();
 ?>
 
 <!DOCTYPE html>
@@ -47,7 +54,7 @@ if(isset($_POST['email'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password </title> 
+    <title>Forgot Password</title>
     <script src="index.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
@@ -55,26 +62,22 @@ if(isset($_POST['email'])) {
 
 <body>
     <div class="container">
-
         <div class="wrapper">
-            <div class="title"> Registered Email </div>
+            <div class="title">Registered Email</div>
+            <?php if ($message !== null): ?>
+                <p role="status"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php endif; ?>
             <form name="forgot-password" method="post">
                 <div class="row">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" placeholder="Email" required name="email" id="email">
+                    <input type="email" placeholder="Email" required name="email" id="email" autocomplete="email">
                 </div>
                 <div class="row button">
                     <input type="submit" value="Reset" name="reset">
                 </div>
-                <div class="signup-link">Don't forgot? <a href="login.php">Login</a></div>
+                <div class="signup-link">Remembered it? <a href="login.php">Login</a></div>
             </form>
         </div>
-        <br>
-        <?php
-            if($not_registered) {
-                echo "<center>Please enter a registered email address.</center>";
-            }
-        ?>
     </div>
 </body>
 </html>
