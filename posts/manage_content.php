@@ -2,21 +2,12 @@
 
 declare(strict_types=1);
 
-$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => $isHttps,
-    'samesite' => 'Lax',
-]);
-session_start();
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../registration/login.php');
-    exit;
-}
-
+require '../includes/security.php';
+require_authentication();
 require '../database/db.php';
+
 $user_id = (int) $_SESSION['user_id'];
+$csrf = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
 
 $statement = $con->prepare('SELECT user_type FROM users WHERE user_id = ? LIMIT 1');
 $statement->bind_param('i', $user_id);
@@ -32,56 +23,54 @@ if ($user === null || $user['user_type'] !== 'Admin') {
 
 $posts = $con->query('SELECT blog_id, title, created_date, image, description FROM blogs ORDER BY created_date DESC');
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Content</title>
+    <title>Manage Content | Weblogr</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
 </head>
 <body>
+<?php include 'sidebar.php'; ?>
 
-    <?php include 'sidebar.php'; ?>
+<div class="top-bar"><span>Manage Content</span></div>
 
-    <div class="top-bar">
-        <span>Manage Content</span>
-    </div>
-
-    <br>
+<main class="content">
     <div class="all-posts-container">
         <?php if ($posts->num_rows > 0): ?>
             <?php while ($row = $posts->fetch_assoc()): ?>
-                <div class="post-container">
-                    <span id="display-title"><?php echo htmlspecialchars((string) $row['title'], ENT_QUOTES, 'UTF-8'); ?></span><br>
+                <article class="post-container">
+                    <span id="display-title"><?php echo htmlspecialchars((string) $row['title'], ENT_QUOTES, 'UTF-8'); ?></span>
                     <div class="date-container">
-                        <span><?php echo htmlspecialchars(date('d/m/Y', strtotime((string) $row['created_date'])), ENT_QUOTES, 'UTF-8'); ?></span><br>
-                        <span>Blog ID: <?php echo (int) $row['blog_id']; ?></span><br>
+                        <span><?php echo htmlspecialchars(date('d/m/Y', strtotime((string) $row['created_date'])), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span>Blog ID: <?php echo (int) $row['blog_id']; ?></span>
                     </div>
                     <?php if (!empty($row['image'])): ?>
-                        <img id="display-image" src="../images/<?php echo htmlspecialchars((string) $row['image'], ENT_QUOTES, 'UTF-8'); ?>" alt="Post image"><br>
+                        <img id="display-image" src="../images/<?php echo rawurlencode((string) $row['image']); ?>" alt="<?php echo htmlspecialchars((string) $row['title'], ENT_QUOTES, 'UTF-8'); ?>">
                     <?php endif; ?>
-                    <p id="display-para"><?php echo htmlspecialchars((string) $row['description'], ENT_QUOTES, 'UTF-8'); ?></p>
-                    <a href="delete_post.php?blog_id=<?php echo (int) $row['blog_id']; ?>" onclick="return confirmDelete();"><i class="fas fa-trash-alt" title="Delete"></i></a>
-                </div>
+                    <p id="display-para"><?php echo nl2br(htmlspecialchars((string) $row['description'], ENT_QUOTES, 'UTF-8')); ?></p>
+                    <form action="delete_post.php" method="post" onsubmit="return confirmDelete();">
+                        <input type="hidden" name="blog_id" value="<?php echo (int) $row['blog_id']; ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>">
+                        <button type="submit" class="icon-button" aria-label="Delete post">
+                            <i class="fas fa-trash-alt" title="Delete"></i>
+                        </button>
+                    </form>
+                </article>
             <?php endwhile; ?>
         <?php else: ?>
-            <center><span>No Blog Posts Found</span></center>
+            <div class="empty-state"><h2>No blog posts found</h2><p>There is currently no content to moderate.</p></div>
         <?php endif; ?>
     </div>
+</main>
 
 <script>
 function confirmDelete() {
     return confirm('Are you sure you want to delete this post?');
 }
 </script>
-
 </body>
 </html>
-
-<?php
-$posts->free();
-$con->close();
-?>
+<?php $posts->free(); $con->close(); ?>
