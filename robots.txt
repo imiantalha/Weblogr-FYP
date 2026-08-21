@@ -3,13 +3,20 @@ Allow: /
 Allow: /assets/
 Allow: /styles/
 Allow: /images/
-Allow: /posts/
 Allow: /seo-links.html
 Allow: /humans.txt
+Allow: /llms.txt
+
+# Authenticated/private application areas.
 Disallow: /registration/
+Disallow: /posts/
+Disallow: /comments/
 Disallow: /admin/
 Disallow: /includes/
 Disallow: /database/
 Disallow: /uploads/
+Disallow: /health.php
+Disallow: /.env
+Disallow: /.git/
 
 Sitemap: /sitemap.php
