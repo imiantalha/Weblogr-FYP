@@ -6,6 +6,7 @@ Allow: /images/
 Allow: /seo-links.html
 Allow: /humans.txt
 Allow: /llms.txt
+Allow: /.well-known/security.txt
 
 # Authenticated/private application areas.
 Disallow: /registration/
@@ -18,5 +19,8 @@ Disallow: /uploads/
 Disallow: /health.php
 Disallow: /.env
 Disallow: /.git/
+
+# Internal documentation is for maintainers, not search results.
+Disallow: /docs/
 
 Sitemap: /sitemap.php

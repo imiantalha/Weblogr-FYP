@@ -1,0 +1,5 @@
+Contact: https://github.com/imiantalha/Weblogr-FYP/security/policy
+Policy: https://github.com/imiantalha/Weblogr-FYP/security/policy
+Canonical: https://github.com/imiantalha/Weblogr-FYP/blob/main/.well-known/security.txt
+Preferred-Languages: en
+Expires: 2027-08-21T00:00:00.000Z

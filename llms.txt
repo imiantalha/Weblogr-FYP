@@ -25,3 +25,9 @@ Core PHP, MySQL/MariaDB, MySQLi, HTML, CSS, JavaScript, PHPMailer and GitHub Act
 - Creator profile: /seo-links.html
 - Sitemap: /sitemap.php
 - Crawler policy: /robots.txt
+- Security disclosure: /.well-known/security.txt
+- SEO launch guidance: /docs/SEO-LAUNCH.md
+
+## Indexing guidance
+
+Only public, useful pages should be indexed. Authenticated application workflows, administration, database/configuration files and internal endpoints are intentionally excluded from crawling. Public posts can be added to the sitemap once the application exposes stable unauthenticated post URLs.
