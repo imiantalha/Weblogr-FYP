@@ -1,40 +1,59 @@
 <?php
 
-  include '../database/db.php';
-  if(isset($_POST['password'], $_POST['confirm_password'])) {
-    $email  = "talhaarshad427@gmail.com";
-    // $email = $_POST['email'];
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
+declare(strict_types=1);
 
-    if($password === $confirm_password) {
-        // Hash the password for security
+$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => $isHttps,
+    'samesite' => 'Lax',
+]);
+session_start();
+
+$user_id = filter_var($_SESSION['password_reset_user_id'] ?? 0, FILTER_VALIDATE_INT);
+if (!$user_id) {
+    header('Location: forgot_password.php');
+    exit;
+}
+
+$error_message = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $password = (string) ($_POST['password'] ?? '');
+    $confirm_password = (string) ($_POST['confirm_password'] ?? '');
+
+    if (strlen($password) < 8) {
+        $error_message = 'Password must be at least 8 characters long.';
+    } elseif ($password !== $confirm_password) {
+        $error_message = 'Passwords do not match.';
+    } else {
+        require '../database/db.php';
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        // Update the password for the given email address
-        $sql = "UPDATE users SET password='$hashed_password' WHERE email='$email'";
-        if ($con->query($sql)) {
-          echo "Password updated successfully.";
-          header("Location: login.php");
-          
-        } else {
-          echo "Please try again.";
+        $statement = $con->prepare('UPDATE users SET password = ? WHERE user_id = ? AND is_verified = 1');
+        $statement->bind_param('si', $hashed_password, $user_id);
+        $statement->execute();
+        $updated = $statement->affected_rows;
+        $statement->close();
+        $con->close();
+
+        if ($updated === 1) {
+            unset($_SESSION['password_reset_user_id']);
+            header('Location: login.php');
+            exit;
         }
-    } else {
-        echo "Passwords do not match.";
+
+        $error_message = 'Unable to reset the password. Please try again.';
     }
-  }
-
+}
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Password </title> 
-  <script src="index.js"></script>
+  <title>Reset Password</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
 </head>
@@ -48,19 +67,23 @@
     <div class="wrapper">
       <div class="title"><span>Reset Password</span></div>
 
-      <form name="reset-password" method="post" onsubmit="return form_validation()">
+      <?php if ($error_message !== null): ?>
+        <p role="alert"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p>
+      <?php endif; ?>
+
+      <form name="reset-password" method="post">
         <div class="row">
           <i class="fas fa-lock"></i>
-          <input type="password" placeholder="Enter password" minlength="5" maxlength="8" required name="password" id="password">
+          <input type="password" placeholder="Enter password" minlength="8" required name="password" id="password" autocomplete="new-password">
         </div>
         <div class="row">
           <i class="fas fa-key"></i>
-          <input type="password" placeholder="Confime Password" minlength="5" maxlength="8" required name="confirm_password" id="confirm_password">
+          <input type="password" placeholder="Confirm password" minlength="8" required name="confirm_password" id="confirm_password" autocomplete="new-password">
         </div>
         <div class="row button">
           <input type="submit" value="Reset" name="reset">
         </div>
-        <div class="signup-link">Don't forgot? <a href="login.php">Login</a></div>
+        <div class="signup-link">Remembered it? <a href="login.php">Login</a></div>
       </form>
     </div>
   </div>
