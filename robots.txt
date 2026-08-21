@@ -2,6 +2,10 @@ User-agent: *
 Allow: /
 Allow: /assets/
 Allow: /styles/
+Allow: /images/
+Allow: /posts/
+Allow: /seo-links.html
+Allow: /humans.txt
 Disallow: /registration/
 Disallow: /admin/
 Disallow: /includes/
