@@ -11,53 +11,78 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
 $csrf = e(csrf_token());
 $category = trim((string) ($_GET['category'] ?? ''));
 $username_filter = trim((string) ($_GET['username'] ?? ''));
-$sort = (string) ($_GET['sort'] ?? '');
+$search = trim((string) ($_GET['search'] ?? ''));
+$sort = (string) ($_GET['sort'] ?? 'newest_first');
 $popularity = (string) ($_GET['popularity'] ?? '');
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$per_page = 8;
 $allowed_categories = ['education', 'technology', 'travel', 'food', 'fashion', 'sport', 'other'];
 $allowed_sorts = ['newest_first', 'oldest_first'];
 $allowed_popularity = ['popular', 'unpopular'];
 
+if (!in_array($category, $allowed_categories, true)) $category = '';
+if (!in_array($sort, $allowed_sorts, true)) $sort = 'newest_first';
+if (!in_array($popularity, $allowed_popularity, true)) $popularity = '';
+
 $users = $con->query('SELECT username FROM users ORDER BY username ASC');
-$sql = 'SELECT b.blog_id, b.title, b.created_date, b.image, b.description, b.likes, b.user_id, u.username FROM blogs b JOIN users u ON b.user_id = u.user_id';
+
+$base = ' FROM blogs b JOIN users u ON b.user_id = u.user_id';
 $conditions = [];
 $params = [];
 $types = '';
-
-if (in_array($category, $allowed_categories, true)) { $conditions[] = 'b.category = ?'; $params[] = $category; $types .= 's'; }
+if ($category !== '') { $conditions[] = 'b.category = ?'; $params[] = $category; $types .= 's'; }
 if ($username_filter !== '') { $conditions[] = 'u.username = ?'; $params[] = $username_filter; $types .= 's'; }
-if ($conditions) { $sql .= ' WHERE ' . implode(' AND ', $conditions); }
-if ($popularity === 'popular') { $sql .= ' ORDER BY b.likes DESC, b.created_date DESC'; }
-elseif ($popularity === 'unpopular') { $sql .= ' ORDER BY b.likes ASC, b.created_date DESC'; }
-elseif ($sort === 'oldest_first') { $sql .= ' ORDER BY b.created_date ASC'; }
-else { $sql .= ' ORDER BY b.created_date DESC'; }
+if ($search !== '') { $conditions[] = '(b.title LIKE ? OR b.description LIKE ? OR u.username LIKE ?)'; $term = '%' . $search . '%'; $params[] = $term; $params[] = $term; $params[] = $term; $types .= 'sss'; }
+$where = $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
 
+$count_statement = $con->prepare('SELECT COUNT(*) AS total' . $base . $where);
+if ($params) $count_statement->bind_param($types, ...$params);
+$count_statement->execute();
+$total = (int) $count_statement->get_result()->fetch_assoc()['total'];
+$count_statement->close();
+$total_pages = max(1, (int) ceil($total / $per_page));
+$page = min($page, $total_pages);
+$offset = ($page - 1) * $per_page;
+
+$order = $popularity === 'popular' ? 'b.likes DESC, b.created_date DESC' : ($popularity === 'unpopular' ? 'b.likes ASC, b.created_date DESC' : ($sort === 'oldest_first' ? 'b.created_date ASC' : 'b.created_date DESC'));
+$sql = 'SELECT b.blog_id, b.title, b.created_date, b.image, b.description, b.likes, b.user_id, u.username' . $base . $where . ' ORDER BY ' . $order . ' LIMIT ? OFFSET ?';
+$feed_params = $params;
+$feed_params[] = $per_page;
+$feed_params[] = $offset;
+$feed_types = $types . 'ii';
 $statement = $con->prepare($sql);
-if ($params) { $statement->bind_param($types, ...$params); }
+$statement->bind_param($feed_types, ...$feed_params);
 $statement->execute();
 $result = $statement->get_result();
+
+$query = $_GET;
+unset($query['page']);
+function page_url(int $page, array $query): string { $query['page'] = $page; return 'index.php?' . http_build_query($query); }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weblogr</title><script src="index.js" defer></script><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"><script src="../scripts/script.js" defer></script>
+<title>Discover | Weblogr</title><script src="index.js" defer></script><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"><script src="../scripts/script.js" defer></script>
 </head>
 <body>
 <?php include 'sidebar.php'; ?>
-<div class="content"><div class="all-posts-container">
+<main class="content"><div class="all-posts-container">
+<header class="feed-header"><p class="eyebrow">DISCOVER</p><h1>Find your next read</h1><p>Explore stories from the Weblogr community.</p></header>
 <form action="index.php" method="get" class="post-filters">
-<select name="category" id="category" class="filter"><option value="">By Category</option><?php foreach ($allowed_categories as $option): ?><option value="<?php echo e($option); ?>" <?php echo $category === $option ? 'selected' : ''; ?>><?php echo e(ucfirst($option)); ?></option><?php endforeach; ?></select>
-<select name="username" id="username" class="filter"><option value="">By User</option><?php while ($user = $users->fetch_assoc()): ?><option value="<?php echo e($user['username']); ?>" <?php echo $username_filter === $user['username'] ? 'selected' : ''; ?>><?php echo e(strtoupper($user['username'])); ?></option><?php endwhile; ?></select>
-<select name="sort" id="sort" class="filter"><option value="">By Date</option><option value="newest_first" <?php echo $sort === 'newest_first' ? 'selected' : ''; ?>>Newest First</option><option value="oldest_first" <?php echo $sort === 'oldest_first' ? 'selected' : ''; ?>>Oldest First</option></select>
-<select name="popularity" id="popularity" class="filter"><option value="">Popularity</option><option value="popular" <?php echo $popularity === 'popular' ? 'selected' : ''; ?>>Most Popular</option><option value="unpopular" <?php echo $popularity === 'unpopular' ? 'selected' : ''; ?>>Less Popular</option></select>
-<button type="submit" class="submit">Apply Filter</button></form>
+<div class="search-field"><i class="fas fa-search"></i><input name="search" value="<?php echo e($search); ?>" maxlength="100" placeholder="Search posts, authors or topics..." aria-label="Search posts"></div>
+<select name="category" class="filter"><option value="">All categories</option><?php foreach ($allowed_categories as $option): ?><option value="<?php echo e($option); ?>" <?php echo $category === $option ? 'selected' : ''; ?>><?php echo e(ucfirst($option)); ?></option><?php endforeach; ?></select>
+<select name="username" class="filter"><option value="">All authors</option><?php while ($user = $users->fetch_assoc()): ?><option value="<?php echo e($user['username']); ?>" <?php echo $username_filter === $user['username'] ? 'selected' : ''; ?>><?php echo e(strtoupper($user['username'])); ?></option><?php endwhile; ?></select>
+<select name="sort" class="filter"><option value="newest_first" <?php echo $sort === 'newest_first' ? 'selected' : ''; ?>>Newest</option><option value="oldest_first" <?php echo $sort === 'oldest_first' ? 'selected' : ''; ?>>Oldest</option></select>
+<select name="popularity" class="filter"><option value="">Popularity</option><option value="popular" <?php echo $popularity === 'popular' ? 'selected' : ''; ?>>Most popular</option><option value="unpopular" <?php echo $popularity === 'unpopular' ? 'selected' : ''; ?>>Least popular</option></select>
+<button type="submit" class="submit">Search</button><?php if ($search || $category || $username_filter || $popularity || $sort !== 'newest_first'): ?><a href="index.php" class="clear-filter">Clear</a><?php endif; ?></form>
+<p class="results-count"><?php echo $total; ?> <?php echo $total === 1 ? 'story' : 'stories'; ?> found</p>
 <?php if ($result->num_rows > 0): while ($row = $result->fetch_assoc()): ?>
-<article class="post-container"><span id="display-title"><?php echo e((string) $row['title']); ?></span><div class="date-container"><span><?php echo e(date('d/m/Y', strtotime($row['created_date']))); ?></span></div>
-<?php if (!empty($row['image'])): ?><img id="display-image" src="../images/<?php echo rawurlencode((string) $row['image']); ?>" alt="<?php echo e((string) $row['title']); ?>"><?php endif; ?>
-<div class="report"><a href="report.php?blog_id=<?php echo (int) $row['blog_id']; ?>&blogger_id=<?php echo (int) $row['user_id']; ?>" aria-label="Report post"><i class="fas fa-exclamation-triangle fa-2x" title="Report"></i></a></div>
-<p id="display-para"><a href="blog_poster.php?user_id=<?php echo (int) $row['user_id']; ?>">@<?php echo e((string) $row['username']); ?></a>: <?php echo nl2br(e((string) $row['description'])); ?></p>
-<div class="like-button"><button type="button" class="icon-button" onclick="likeBlog(<?php echo (int) $row['blog_id']; ?>, '<?php echo $csrf; ?>')" aria-label="Like post"><i class="fas fa-thumbs-up fa-2x" title="Like"></i> <span id="like-count-<?php echo (int) $row['blog_id']; ?>"><?php echo (int) $row['likes']; ?></span></button><a href="../comments/comments.php?blog_id=<?php echo (int) $row['blog_id']; ?>" style="margin-left:15px" aria-label="Comments"><i class="fas fa-comment fa-2x" title="Comment"></i></a></div></article>
-<?php endwhile; else: ?><div class="empty-state"><span>No Blog Posts Found</span></div><?php endif; ?>
-</div></div>
+<article class="post-container"><span id="display-title"><?php echo e((string)$row['title']); ?></span><div class="post-meta"><span><a href="blog_poster.php?user_id=<?php echo (int)$row['user_id']; ?>">@<?php echo e((string)$row['username']); ?></a></span><span><?php echo e(date('d M Y', strtotime((string)$row['created_date']))); ?></span></div>
+<?php if (!empty($row['image'])): ?><img id="display-image" src="../images/<?php echo rawurlencode((string)$row['image']); ?>" alt="<?php echo e((string)$row['title']); ?>" loading="lazy"><?php endif; ?><p id="display-para"><?php echo nl2br(e((string)$row['description'])); ?></p>
+<div class="post-actions"><button type="button" class="icon-button like-control" onclick="likeBlog(<?php echo (int)$row['blog_id']; ?>, '<?php echo $csrf; ?>')" aria-label="Like post"><i class="fas fa-heart"></i> <span id="like-count-<?php echo (int)$row['blog_id']; ?>"><?php echo (int)$row['likes']; ?></span></button><a href="../comments/comments.php?blog_id=<?php echo (int)$row['blog_id']; ?>"><i class="far fa-comment"></i> Discuss</a><a href="report.php?blog_id=<?php echo (int)$row['blog_id']; ?>&blogger_id=<?php echo (int)$row['user_id']; ?>"><i class="far fa-flag"></i> Report</a></div></article>
+<?php endwhile; else: ?><div class="empty-state"><div class="empty-icon"><i class="fas fa-search"></i></div><h2>No stories found</h2><p>Try changing your search or filters.</p><a href="index.php" class="submit">Browse all stories</a></div><?php endif; ?>
+<?php if ($total_pages > 1): ?><nav class="pagination" aria-label="Pagination"><span>Page <?php echo $page; ?> of <?php echo $total_pages; ?></span><div><?php if ($page > 1): ?><a href="<?php echo e(page_url($page - 1, $query)); ?>" class="secondary-button">← Previous</a><?php endif; ?><?php if ($page < $total_pages): ?><a href="<?php echo e(page_url($page + 1, $query)); ?>" class="submit">Next →</a><?php endif; ?></div></nav><?php endif; ?>
+</div></main>
 <?php $statement->close(); $con->close(); ?>
 </body></html>
