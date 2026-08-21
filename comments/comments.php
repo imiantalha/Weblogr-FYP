@@ -2,22 +2,11 @@
 
 declare(strict_types=1);
 
-$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => $isHttps,
-    'samesite' => 'Lax',
-]);
-session_start();
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../registration/login.php');
-    exit;
-}
+require '../includes/security.php';
+require_authentication();
 
 require '../database/db.php';
 
-$user_id = (int) $_SESSION['user_id'];
 $blog_id = filter_input(INPUT_GET, 'blog_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
 if ($blog_id === false || $blog_id === null) {
@@ -44,8 +33,8 @@ $statement = $con->prepare(
 $statement->bind_param('i', $blog_id);
 $statement->execute();
 $comments = $statement->get_result();
+$csrf = csrf_token();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,49 +46,45 @@ $comments = $statement->get_result();
 </head>
 <body>
     <div class="container">
-        <a href="../posts/index.php"><b>Back</b></a><br>
-
+        <a href="../posts/index.php"><b>Back</b></a>
         <div class="post-container">
-            <span id="display-title"><?php echo htmlspecialchars((string) $blog['title'], ENT_QUOTES, 'UTF-8'); ?></span><br>
+            <span id="display-title"><?php echo htmlspecialchars((string) $blog['title'], ENT_QUOTES, 'UTF-8'); ?></span>
             <div class="date-container">
-                <span><?php echo htmlspecialchars(date('d/m/Y', strtotime((string) $blog['created_date'])), ENT_QUOTES, 'UTF-8'); ?></span><br><br>
+                <span><?php echo htmlspecialchars(date('d/m/Y', strtotime((string) $blog['created_date'])), ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
             <?php if (!empty($blog['image'])): ?>
-                <img id="display-image" src="../images/<?php echo htmlspecialchars((string) $blog['image'], ENT_QUOTES, 'UTF-8'); ?>" alt="Post image"><br>
+                <img id="display-image" src="../images/<?php echo htmlspecialchars((string) $blog['image'], ENT_QUOTES, 'UTF-8'); ?>" alt="Post image">
             <?php endif; ?>
             <p id="display-para"><?php echo htmlspecialchars((string) $blog['description'], ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
 
         <form action="save_comment.php" method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="blog_id" value="<?php echo (int) $blog_id; ?>">
-            <textarea id="blog-para" name="comment_text" cols="40" rows="2" maxlength="2000" required placeholder="Comment..."></textarea><br>
-            <button id="save-btn" type="submit">Save Comment</button>
+            <textarea id="blog-para" name="comment_text" cols="40" rows="3" maxlength="2000" required placeholder="Write a thoughtful comment..."></textarea><br>
+            <button id="save-btn" type="submit">Post Comment</button>
         </form>
 
         <?php if ($comments->num_rows > 0): ?>
-            <h3>Comments:</h3>
+            <h3>Comments</h3>
             <?php while ($comment = $comments->fetch_assoc()): ?>
-                <div>
-                    <p style="display: inline;">
-                        <?php echo htmlspecialchars((string) $comment['comment_text'], ENT_QUOTES, 'UTF-8'); ?>
-                    </p>
-                    <form action="like_a_comment.php" method="post" style="display: inline; margin-left: 10px;">
+                <div class="comment-item">
+                    <p><?php echo htmlspecialchars((string) $comment['comment_text'], ENT_QUOTES, 'UTF-8'); ?></p>
+                    <form action="like_a_comment.php" method="post">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="comment_id" value="<?php echo (int) $comment['comment_id']; ?>">
                         <input type="hidden" name="blog_id" value="<?php echo (int) $comment['blog_id']; ?>">
-                        <button class="like-btn" type="submit" title="Like">
-                            <i class="fas fa-thumbs-up"></i>
-                        </button>
+                        <button class="like-btn" type="submit" title="Like comment" aria-label="Like comment"><i class="fas fa-thumbs-up"></i></button>
                     </form>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
-            <p>No comments yet.</p>
+            <p class="empty-comments">No comments yet. Be the first to start the conversation.</p>
         <?php endif; ?>
     </div>
-
-    <?php
-    $statement->close();
-    $con->close();
-    ?>
 </body>
 </html>
+<?php
+$statement->close();
+$con->close();
+?>
