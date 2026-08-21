@@ -2,28 +2,26 @@
 
 declare(strict_types=1);
 
-$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => $isHttps,
-    'samesite' => 'Lax',
-]);
-session_start();
+require '../includes/security.php';
+require_authentication();
 
-if (!isset($_SESSION['user_id'], $_SESSION['username'])) {
-    header('Location: ../registration/login.php');
-    exit;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method not allowed.');
 }
 
+verify_csrf();
 require '../database/db.php';
 
 $follower_id = (int) $_SESSION['user_id'];
 $username = strtoupper((string) $_SESSION['username']);
-$user_id = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$user_id = filter_var($_POST['user_id'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-if ($user_id === false || $user_id === null || $user_id === $follower_id) {
-    header('Location: index.php');
-    exit;
+if (!$user_id || $user_id === $follower_id) {
+    $con->close();
+    http_response_code(422);
+    exit('Invalid user.');
 }
 
 try {
