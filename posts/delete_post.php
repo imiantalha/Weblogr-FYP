@@ -2,24 +2,21 @@
 
 declare(strict_types=1);
 
-$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => $isHttps,
-    'samesite' => 'Lax',
-]);
-session_start();
+require '../includes/security.php';
+require_authentication();
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../registration/login.php');
-    exit;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method not allowed.');
 }
 
+verify_csrf();
 require '../database/db.php';
 
 $user_id = (int) $_SESSION['user_id'];
-$blog_id = filter_input(INPUT_GET, 'blog_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-$draft_id = filter_input(INPUT_GET, 'draft_id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$blog_id = filter_var($_POST['blog_id'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$draft_id = filter_var($_POST['draft_id'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
 $statement = $con->prepare('SELECT user_type FROM users WHERE user_id = ? LIMIT 1');
 $statement->bind_param('i', $user_id);
@@ -38,7 +35,6 @@ $is_admin = $user['user_type'] === 'Admin';
 if ($blog_id !== false && $blog_id !== null) {
     try {
         $con->begin_transaction();
-
         $statement = $con->prepare('SELECT user_id FROM blogs WHERE blog_id = ? LIMIT 1');
         $statement->bind_param('i', $blog_id);
         $statement->execute();
@@ -73,9 +69,7 @@ if ($blog_id !== false && $blog_id !== null) {
         $con->close();
         error_log('Delete post failed: ' . $exception->getMessage());
         http_response_code($exception->getMessage() === 'Post not found or access denied.' ? 404 : 500);
-        echo $exception->getMessage() === 'Post not found or access denied.'
-            ? 'Post not found or access denied.'
-            : 'Unable to delete the post.';
+        echo $exception->getMessage() === 'Post not found or access denied.' ? 'Post not found or access denied.' : 'Unable to delete the post.';
         exit;
     }
 }
