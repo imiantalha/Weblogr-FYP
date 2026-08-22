@@ -1,10 +1,9 @@
 <?php
-
 declare(strict_types=1);
 require '../includes/security.php';
 $user_id=require_authentication();
 require '../database/db.php';
-$message=''; $error='';
+$message='';$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  verify_csrf();
  $current=(string)($_POST['current_password']??'');$new=(string)($_POST['new_password']??'');$confirm=(string)($_POST['confirm_password']??'');
@@ -15,4 +14,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 function e(string $v):string{return htmlspecialchars($v,ENT_QUOTES,'UTF-8');}
 ?>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Change Password | Weblogr</title><script src="../assets/form-validation.js" defer></script><link rel="stylesheet" href="style.css"></head><body><main class="account-shell"><section class="account-card"><p class="eyebrow">ACCOUNT SECURITY</p><h1>Change password</h1><p>Use a strong password you do not reuse elsewhere.</p><?php if($error):?><div class="form-alert" role="alert"><?php echo e($error);?></div><?php elseif($message):?><div class="form-success" role="status"><?php echo e($message);?></div><?php endif;?><form method="post" novalidate><input type="hidden" name="csrf_token" value="<?php echo e(csrf_token());?>"><label>Current password<input type="password" name="current_password" autocomplete="current-password" required data-label="Current password"></label><label>New password<input type="password" name="new_password" minlength="8" autocomplete="new-password" required data-label="New password"></label><label>Confirm new password<input type="password" name="confirm_password" minlength="8" autocomplete="new-password" required data-label="Confirm password"></label><div class="form-actions"><a class="secondary-button" href="profile.php">Cancel</a><button class="submit" type="submit">Update password</button></div></form></section></main></body></html><?php $con->close();?>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Change Password | Weblogr</title><script src="../assets/form-validation.js" defer></script><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"></head><body>
+<?php include '../posts/sidebar.php'; ?>
+<main class="content"><div class="account-shell"><div class="account-page"><section class="account-card">
+<div class="account-card-header"><div class="header-copy"><p class="eyebrow">ACCOUNT SECURITY</p><h1>Change password</h1><p>Use a strong password you do not reuse elsewhere.</p></div><a class="secondary-button" href="profile.php"><i class="fas fa-arrow-left"></i> Back</a></div>
+<?php if($error): ?><div class="form-alert" role="alert"><?php echo e($error); ?></div><?php elseif($message): ?><div class="form-success" role="status"><?php echo e($message); ?></div><?php endif; ?>
+<form method="post" novalidate><input type="hidden" name="csrf_token" value="<?php echo e(csrf_token()); ?>"><div class="account-form-grid"><label>Current password<input type="password" name="current_password" autocomplete="current-password" required data-label="Current password"></label><div></div><label>New password<input type="password" name="new_password" minlength="8" autocomplete="new-password" required data-label="New password"></label><label>Confirm new password<input type="password" name="confirm_password" minlength="8" autocomplete="new-password" required data-label="Confirm password"></label></div><div class="form-actions"><a class="secondary-button" href="profile.php">Cancel</a><button class="submit" type="submit"><i class="fas fa-key"></i> Update password</button></div></form>
+</section></div></div></main></body></html><?php $con->close();?>
