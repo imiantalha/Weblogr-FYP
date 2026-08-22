@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 require '../includes/security.php';
 require '../includes/google_auth.php';
@@ -12,7 +11,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if($first_name===''||mb_strlen($first_name)>50||$last_name===''||mb_strlen($last_name)>50)$registration_error='Please enter a valid first and last name.';elseif(!filter_var($email,FILTER_VALIDATE_EMAIL))$registration_error='Please enter a valid email address.';elseif(!preg_match('/^[A-Za-z0-9_.-]{3,255}$/',$username))$registration_error='Username must be 3-255 characters and contain only letters, numbers, dots, underscores, or hyphens.';elseif(strlen($password)<8)$registration_error='Password must be at least 8 characters long.';elseif($password!==$confirm_password)$registration_error='Passwords do not match.';else{
         $statement=$con->prepare('SELECT username,email,is_verified FROM users WHERE username=? OR email=? LIMIT 1');$statement->bind_param('ss',$username,$email);$statement->execute();$existing_user=$statement->get_result()->fetch_assoc();$statement->close();
         if($existing_user!==null)$registration_error=(int)$existing_user['is_verified']===1?($existing_user['username']===$username?'Username already exists.':'Email already exists.'):'An unverified account already exists for this username or email.';else{
-            $otp=random_int(100000,999999);$password_hash=password_hash($password,PASSWORD_DEFAULT);$statement=$con->prepare('INSERT INTO users (first_name,last_name,username,email,password,otp,is_verified) VALUES (?,?,?,?,?,?,0)');$statement->bind_param('ssssss',$first_name,$last_name,$username,$email,$password_hash,$otp);$statement->execute();$statement->close();$con->close();$_SESSION['otp_purpose']='registration';$_SESSION['otp_email']=$email;$_SESSION['otp_expires_at']=time()+600;require 'mail.php';exit;
+            $otp=random_int(100000,999999);$password_hash=password_hash($password,PASSWORD_DEFAULT);$statement=$con->prepare('INSERT INTO users (first_name,last_name,username,email,password,otp,is_verified) VALUES (?,?,?,?,?,?,0)');$statement->bind_param('ssssss',$first_name,$last_name,$username,$email,$password_hash,$otp);$statement->execute();$statement->close();$con->close();$_SESSION['otp_purpose']='registration';$_SESSION['otp_email']=$email;$_SESSION['otp_expires_at']=time()+600;$_SESSION['otp_resend_available_at']=time()+30;require 'mail.php';exit;
         }
     }
     $con->close();
