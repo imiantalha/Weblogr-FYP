@@ -17,7 +17,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mysqli, fileinfo
+          extensions: mysqli, fileinfo, curl, openssl
 
       - name: Validate Composer configuration
         run: composer validate --working-dir=registration --no-check-publish
