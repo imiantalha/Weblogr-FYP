@@ -18,7 +18,8 @@ CREATE TABLE `users` (
   `date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_verified` TINYINT(1) NOT NULL DEFAULT 0,
   `user_type` ENUM('Common user','Admin') NOT NULL DEFAULT 'Common user',
-  PRIMARY KEY (`user_id`), UNIQUE KEY `uq_users_username` (`username`), UNIQUE KEY `uq_users_email` (`email`)
+  `google_id` VARCHAR(255) DEFAULT NULL,
+  PRIMARY KEY (`user_id`), UNIQUE KEY `uq_users_username` (`username`), UNIQUE KEY `uq_users_email` (`email`), UNIQUE KEY `uq_users_google_id` (`google_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `blogs` (
@@ -122,4 +123,4 @@ CREATE TABLE `moderation_logs` (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Intentionally no INSERT statements: the application starts with an empty database.
--- Create the first account through the normal registration flow.
+-- Create the first account through the normal registration flow or Google authentication.
