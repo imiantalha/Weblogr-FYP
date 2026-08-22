@@ -3,6 +3,14 @@ Allow: /
 Allow: /assets/
 Allow: /styles/
 Allow: /images/
+Allow: /blog.php
+Allow: /read/
+Allow: /author/
+Allow: /discover
+Allow: /sitemap.xml
+Allow: /about.html
+Allow: /privacy.html
+Allow: /terms.html
 Allow: /seo-links.html
 Allow: /humans.txt
 Allow: /llms.txt
@@ -19,8 +27,6 @@ Disallow: /uploads/
 Disallow: /health.php
 Disallow: /.env
 Disallow: /.git/
-
-# Internal documentation is for maintainers, not search results.
 Disallow: /docs/
 
-Sitemap: /sitemap.php
+Sitemap: /sitemap.xml
