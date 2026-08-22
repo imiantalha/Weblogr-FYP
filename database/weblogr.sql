@@ -1,6 +1,8 @@
 -- Weblogr database bootstrap
 -- Canonical normalized fresh-install schema.
--- Generated for the database normalization refactor on 2026-08-22.
+-- created_at/updated_at are the canonical timestamp columns. The generated
+-- legacy aliases exist only so older read-only pages remain compatible while
+-- they are being phased out.
 
 CREATE DATABASE IF NOT EXISTS `weblogr` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `weblogr`;
@@ -22,10 +24,7 @@ CREATE TABLE `users` (
   `google_id` VARCHAR(255) DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`user_id`),
-  UNIQUE KEY `uq_users_username` (`username`),
-  UNIQUE KEY `uq_users_email` (`email`),
-  UNIQUE KEY `uq_users_google_id` (`google_id`)
+  PRIMARY KEY (`user_id`), UNIQUE KEY `uq_users_username` (`username`), UNIQUE KEY `uq_users_email` (`email`), UNIQUE KEY `uq_users_google_id` (`google_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `blogs` (
@@ -33,14 +32,13 @@ CREATE TABLE `blogs` (
   `title` VARCHAR(255) NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_date` TIMESTAMP GENERATED ALWAYS AS (`created_at`) STORED,
   `description` TEXT DEFAULT NULL,
   `category` VARCHAR(50) NOT NULL,
   `image` VARCHAR(255) DEFAULT NULL,
   `likes` INT UNSIGNED NOT NULL DEFAULT 0,
   `user_id` INT UNSIGNED DEFAULT NULL,
-  PRIMARY KEY (`blog_id`),
-  KEY `idx_blogs_user_created` (`user_id`,`created_at`),
-  KEY `idx_blogs_category_created` (`category`,`created_at`),
+  PRIMARY KEY (`blog_id`), KEY `idx_blogs_user_created` (`user_id`,`created_at`), KEY `idx_blogs_category_created` (`category`,`created_at`),
   CONSTRAINT `fk_blogs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -53,8 +51,7 @@ CREATE TABLE `draft_posts` (
   `image` VARCHAR(255) DEFAULT NULL,
   `category` VARCHAR(50) NOT NULL,
   `user_id` INT UNSIGNED DEFAULT NULL,
-  PRIMARY KEY (`draft_id`),
-  KEY `idx_drafts_user_created` (`user_id`,`created_at`),
+  PRIMARY KEY (`draft_id`), KEY `idx_drafts_user_created` (`user_id`,`created_at`),
   CONSTRAINT `fk_drafts_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -66,9 +63,8 @@ CREATE TABLE `comments` (
   `likes` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`comment_id`),
-  KEY `idx_comments_blog_created` (`blog_id`,`created_at`),
-  KEY `idx_comments_commenter` (`commenter_id`),
+  `comment_date` TIMESTAMP GENERATED ALWAYS AS (`created_at`) STORED,
+  PRIMARY KEY (`comment_id`), KEY `idx_comments_blog_created` (`blog_id`,`created_at`), KEY `idx_comments_commenter` (`commenter_id`),
   CONSTRAINT `fk_comments_blog` FOREIGN KEY (`blog_id`) REFERENCES `blogs` (`blog_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_comments_user` FOREIGN KEY (`commenter_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -77,8 +73,7 @@ CREATE TABLE `post_likes` (
   `blog_id` INT UNSIGNED NOT NULL,
   `user_id` INT UNSIGNED NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`blog_id`,`user_id`),
-  KEY `idx_post_likes_user` (`user_id`),
+  PRIMARY KEY (`blog_id`,`user_id`), KEY `idx_post_likes_user` (`user_id`),
   CONSTRAINT `fk_post_likes_blog` FOREIGN KEY (`blog_id`) REFERENCES `blogs` (`blog_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_post_likes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -87,8 +82,7 @@ CREATE TABLE `comment_likes` (
   `comment_id` INT UNSIGNED NOT NULL,
   `user_id` INT UNSIGNED NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`comment_id`,`user_id`),
-  KEY `idx_comment_likes_user` (`user_id`),
+  PRIMARY KEY (`comment_id`,`user_id`), KEY `idx_comment_likes_user` (`user_id`),
   CONSTRAINT `fk_comment_likes_comment` FOREIGN KEY (`comment_id`) REFERENCES `comments` (`comment_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_comment_likes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -98,9 +92,7 @@ CREATE TABLE `followers` (
   `blogger_id` INT UNSIGNED NOT NULL,
   `follower_id` INT UNSIGNED NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_followers_pair` (`blogger_id`,`follower_id`),
-  KEY `idx_followers_follower` (`follower_id`),
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_followers_pair` (`blogger_id`,`follower_id`), KEY `idx_followers_follower` (`follower_id`),
   CONSTRAINT `fk_followers_blogger` FOREIGN KEY (`blogger_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_followers_follower` FOREIGN KEY (`follower_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `chk_followers_not_self` CHECK (`blogger_id` <> `follower_id`)
@@ -112,8 +104,7 @@ CREATE TABLE `notifications` (
   `user_id` INT UNSIGNED DEFAULT NULL,
   `is_read` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_notifications_user_read` (`user_id`,`is_read`,`id`),
+  PRIMARY KEY (`id`), KEY `idx_notifications_user_read` (`user_id`,`is_read`,`id`),
   CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -128,10 +119,7 @@ CREATE TABLE `reports` (
   `reviewed_at` DATETIME DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`report_id`),
-  KEY `idx_reports_status_created` (`status`,`created_at`),
-  KEY `idx_reports_blog` (`blog_id`),
-  KEY `idx_reports_reporter` (`reporter_id`),
+  PRIMARY KEY (`report_id`), KEY `idx_reports_status_created` (`status`,`created_at`), KEY `idx_reports_blog` (`blog_id`), KEY `idx_reports_reporter` (`reporter_id`),
   CONSTRAINT `fk_reports_blog` FOREIGN KEY (`blog_id`) REFERENCES `blogs` (`blog_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_reports_reporter` FOREIGN KEY (`reporter_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_reports_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE
@@ -145,15 +133,11 @@ CREATE TABLE `moderation_logs` (
   `action` VARCHAR(50) NOT NULL,
   `notes` VARCHAR(500) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`log_id`),
-  KEY `idx_moderation_actor_created` (`actor_id`,`created_at`),
-  KEY `idx_moderation_report` (`report_id`),
-  KEY `idx_moderation_blog` (`blog_id`),
+  PRIMARY KEY (`log_id`), KEY `idx_moderation_actor_created` (`actor_id`,`created_at`), KEY `idx_moderation_report` (`report_id`), KEY `idx_moderation_blog` (`blog_id`),
   CONSTRAINT `fk_moderation_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_moderation_report` FOREIGN KEY (`report_id`) REFERENCES `reports` (`report_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_moderation_blog` FOREIGN KEY (`blog_id`) REFERENCES `blogs` (`blog_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
-
--- Intentionally no INSERT statements: the application starts with an empty database.
+-- No sample data.
