@@ -1,40 +1,8 @@
 <?php
-
 declare(strict_types=1);
-
-require_once __DIR__ . '/includes/env.php';
-
-header('Content-Type: application/xml; charset=UTF-8');
-header('Cache-Control: public, max-age=3600');
-
-$configuredUrl = trim((string) (getenv('APP_URL') ?: ''));
-if ($configuredUrl !== '') {
-    $baseUrl = rtrim($configuredUrl, '/');
-} else {
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
-    $scheme = $https ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $baseUrl = $scheme . '://' . $host;
-}
-
-$urls = [
-    ['path' => '/', 'changefreq' => 'weekly', 'priority' => '1.0'],
-    ['path' => '/seo-links.html', 'changefreq' => 'monthly', 'priority' => '0.6'],
-];
-
-$lastModified = gmdate('Y-m-d');
-
-echo '<?xml version="1.0" encoding="UTF-8"?>';
-echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-
-foreach ($urls as $url) {
-    echo '<url>';
-    echo '<loc>' . htmlspecialchars($baseUrl . $url['path'], ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>';
-    echo '<lastmod>' . $lastModified . '</lastmod>';
-    echo '<changefreq>' . $url['changefreq'] . '</changefreq>';
-    echo '<priority>' . $url['priority'] . '</priority>';
-    echo '</url>';
-}
-
-echo '</urlset>';
+require_once __DIR__.'/includes/env.php'; require_once __DIR__.'/database/db.php'; require_once __DIR__.'/includes/public_helpers.php';
+header('Content-Type: application/xml; charset=utf-8');
+$urls=[['loc'=>public_url('index.html'),'changefreq'=>'weekly','priority'=>'1.0'],['loc'=>public_url('blog.php'),'changefreq'=>'daily','priority'=>'0.9'],['loc'=>public_url('about.html'),'changefreq'=>'monthly','priority'=>'0.5'],['loc'=>public_url('privacy.html'),'changefreq'=>'yearly','priority'=>'0.2'],['loc'=>public_url('terms.html'),'changefreq'=>'yearly','priority'=>'0.2']];
+$r=$con->query('SELECT blog_id,title,created_date FROM blogs ORDER BY created_date DESC');while($row=$r->fetch_assoc())$urls[]=['loc'=>article_url((int)$row['blog_id'],(string)$row['title']),'lastmod'=>date('c',strtotime((string)$row['created_date'])),'changefreq'=>'monthly','priority'=>'0.8'];
+$r=$con->query('SELECT u.user_id,u.username,MAX(b.created_date) lastmod FROM users u INNER JOIN blogs b ON b.user_id=u.user_id GROUP BY u.user_id,u.username');while($row=$r->fetch_assoc())$urls[]=['loc'=>author_url((int)$row['user_id'],(string)$row['username']),'lastmod'=>date('c',strtotime((string)$row['lastmod'])),'changefreq'=>'weekly','priority'=>'0.6'];$con->close();
+echo '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';foreach($urls as $url){echo '<url><loc>'.htmlspecialchars($url['loc'],ENT_XML1|ENT_QUOTES,'UTF-8').'</loc>';if(isset($url['lastmod']))echo '<lastmod>'.htmlspecialchars($url['lastmod'],ENT_XML1|ENT_QUOTES,'UTF-8').'</lastmod>';echo '<changefreq>'.$url['changefreq'].'</changefreq><priority>'.$url['priority'].'</priority></url>'; }echo '</urlset>';

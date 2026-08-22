@@ -1,0 +1,21 @@
+name: PHP quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli
+      - name: Lint PHP files
+        run: |
+          find . -type f -name '*.php' -not -path './registration/vendor/*' -print0 | xargs -0 -n1 php -l
+      - name: Run public helper smoke tests
+        run: php tests/public_helpers_smoke.php
