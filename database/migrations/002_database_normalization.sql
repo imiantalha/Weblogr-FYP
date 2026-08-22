@@ -1,0 +1,94 @@
+-- Weblogr database normalization migration
+-- Apply to an existing database created from the pre-normalization schema.
+-- Back up the database before running this migration.
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE users
+  ADD COLUMN first_name VARCHAR(50) NULL AFTER user_id,
+  ADD COLUMN last_name VARCHAR(50) NULL AFTER first_name,
+  ADD COLUMN bio TEXT NULL AFTER password,
+  ADD COLUMN profile_picture VARCHAR(255) NULL AFTER bio,
+  ADD COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP AFTER google_id,
+  ADD COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+
+UPDATE users u
+LEFT JOIN profile p ON p.user_id = u.user_id
+SET
+  u.first_name = LEFT(TRIM(COALESCE(NULLIF(p.full_name, ''), u.fullname)), 50),
+  u.last_name = LEFT(TRIM(CASE
+    WHEN LOCATE(' ', TRIM(COALESCE(NULLIF(p.full_name, ''), u.fullname))) > 0
+      THEN SUBSTRING(TRIM(COALESCE(NULLIF(p.full_name, ''), u.fullname)), LOCATE(' ', TRIM(COALESCE(NULLIF(p.full_name, ''), u.fullname))) + 1)
+    ELSE ''
+  END), 50),
+  u.bio = p.bio,
+  u.profile_picture = p.profile_picture;
+
+UPDATE users
+SET first_name = CASE WHEN TRIM(COALESCE(first_name, '')) = '' THEN 'Weblogr' ELSE first_name END,
+    last_name = COALESCE(last_name, '');
+
+ALTER TABLE users
+  MODIFY first_name VARCHAR(50) NOT NULL,
+  MODIFY last_name VARCHAR(50) NOT NULL,
+  DROP COLUMN fullname,
+  DROP COLUMN date;
+
+ALTER TABLE blogs
+  CHANGE created_date created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at,
+  DROP INDEX idx_blogs_user_date,
+  DROP INDEX idx_blogs_category_date,
+  ADD KEY idx_blogs_user_created (user_id, created_at),
+  ADD KEY idx_blogs_category_created (category, created_at);
+
+ALTER TABLE draft_posts
+  CHANGE created_date created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at,
+  DROP INDEX idx_drafts_user_date,
+  ADD KEY idx_drafts_user_created (user_id, created_at);
+
+ALTER TABLE comments
+  CHANGE comment_date created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at,
+  DROP INDEX idx_comments_blog_date,
+  ADD KEY idx_comments_blog_created (blog_id, created_at);
+
+CREATE TABLE IF NOT EXISTS post_likes (
+  blog_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (blog_id, user_id),
+  KEY idx_post_likes_user (user_id),
+  CONSTRAINT fk_post_likes_blog FOREIGN KEY (blog_id) REFERENCES blogs (blog_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_post_likes_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS comment_likes (
+  comment_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (comment_id, user_id),
+  KEY idx_comment_likes_user (user_id),
+  CONSTRAINT fk_comment_likes_comment FOREIGN KEY (comment_id) REFERENCES comments (comment_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_comment_likes_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE followers
+  MODIFY blogger_id INT UNSIGNED NOT NULL,
+  MODIFY follower_id INT UNSIGNED NOT NULL,
+  ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER follower_id;
+
+ALTER TABLE reports
+  ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+
+ALTER TABLE moderation_logs
+  CHANGE admin_id actor_id INT UNSIGNED NOT NULL,
+  DROP INDEX idx_moderation_admin_created,
+  ADD KEY idx_moderation_actor_created (actor_id, created_at),
+  DROP FOREIGN KEY fk_moderation_admin,
+  ADD CONSTRAINT fk_moderation_actor FOREIGN KEY (actor_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+DROP TABLE IF EXISTS profile;
+
+SET FOREIGN_KEY_CHECKS = 1;
