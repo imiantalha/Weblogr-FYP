@@ -1,8 +1,6 @@
 -- Weblogr database bootstrap
 -- Canonical normalized fresh-install schema.
--- created_at/updated_at are the canonical timestamp columns. The generated
--- legacy aliases exist only so older read-only pages remain compatible while
--- they are being phased out.
+-- created_at/updated_at are the canonical timestamp columns.
 
 CREATE DATABASE IF NOT EXISTS `weblogr` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `weblogr`;
@@ -32,7 +30,6 @@ CREATE TABLE `blogs` (
   `title` VARCHAR(255) NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_date` TIMESTAMP GENERATED ALWAYS AS (`created_at`) STORED,
   `description` TEXT DEFAULT NULL,
   `category` VARCHAR(50) NOT NULL,
   `image` VARCHAR(255) DEFAULT NULL,
@@ -63,7 +60,6 @@ CREATE TABLE `comments` (
   `likes` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `comment_date` TIMESTAMP GENERATED ALWAYS AS (`created_at`) STORED,
   PRIMARY KEY (`comment_id`), KEY `idx_comments_blog_created` (`blog_id`,`created_at`), KEY `idx_comments_commenter` (`commenter_id`),
   CONSTRAINT `fk_comments_blog` FOREIGN KEY (`blog_id`) REFERENCES `blogs` (`blog_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_comments_user` FOREIGN KEY (`commenter_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE
