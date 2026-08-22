@@ -4,8 +4,8 @@ declare(strict_types=1);
 require '../includes/security.php';
 $user_id=require_authentication();
 require '../database/db.php';
-$s=$con->prepare('SELECT full_name,bio,profile_picture FROM profile WHERE user_id=? LIMIT 1');$s->bind_param('i',$user_id);$s->execute();$p=$s->get_result()->fetch_assoc();$s->close();
-$full_name=$p['full_name']??'Your name';$bio=$p['bio']??'Bio';$profile_picture=!empty($p['profile_picture'])?$p['profile_picture']:'logo.PNG';
+$s=$con->prepare('SELECT first_name,last_name,bio,profile_picture FROM users WHERE user_id=? LIMIT 1');$s->bind_param('i',$user_id);$s->execute();$p=$s->get_result()->fetch_assoc();$s->close();
+$full_name=trim((string)($p['first_name']??'').' '.(string)($p['last_name']??''));$full_name=$full_name!==''?$full_name:'Your name';$bio=$p['bio']??'Bio';$profile_picture=!empty($p['profile_picture'])?$p['profile_picture']:'logo.PNG';
 function count_query(mysqli $con,string $sql,int $id):int{$s=$con->prepare($sql);$s->bind_param('i',$id);$s->execute();$n=(int)$s->get_result()->fetch_assoc()['total'];$s->close();return $n;}
 $post_count=count_query($con,'SELECT COUNT(*) total FROM blogs WHERE user_id=?',$user_id);$follower_count=count_query($con,'SELECT COUNT(*) total FROM followers WHERE blogger_id=?',$user_id);$following_count=count_query($con,'SELECT COUNT(*) total FROM followers WHERE follower_id=?',$user_id);
 function e(string $v):string{return htmlspecialchars($v,ENT_QUOTES,'UTF-8');}
