@@ -1,69 +1,9 @@
 <?php
-
 declare(strict_types=1);
-
-require '../includes/security.php';
-require_authentication();
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    header('Allow: POST');
-    exit('Method not allowed.');
-}
-
-verify_csrf();
-require '../database/db.php';
-
-$blog_id = filter_var($_POST['blog_id'] ?? 0, FILTER_VALIDATE_INT);
-$commenter_id = (int) $_SESSION['user_id'];
-$comment_text = trim((string) ($_POST['comment_text'] ?? ''));
-$username = strtoupper((string) ($_SESSION['username'] ?? ''));
-
-if (!$blog_id || $comment_text === '' || mb_strlen($comment_text) > 2000) {
-    $con->close();
-    http_response_code(422);
-    exit('Invalid comment.');
-}
-
-try {
-    $con->begin_transaction();
-
-    $select = $con->prepare('SELECT user_id FROM blogs WHERE blog_id = ? LIMIT 1');
-    $select->bind_param('i', $blog_id);
-    $select->execute();
-    $blog = $select->get_result()->fetch_assoc();
-    $select->close();
-
-    if ($blog === null) {
-        throw new RuntimeException('Post not found.');
-    }
-
-    $insert = $con->prepare(
-        'INSERT INTO comments (blog_id, commenter_id, comment_text, comment_date)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP())'
-    );
-    $insert->bind_param('iis', $blog_id, $commenter_id, $comment_text);
-    $insert->execute();
-    $insert->close();
-
-    $notification_content = "$username commented on your post (Id: $blog_id): " . $comment_text;
-    $notification = $con->prepare('INSERT INTO notifications (content, user_id) VALUES (?, ?)');
-    $post_owner_id = (int) $blog['user_id'];
-    $notification->bind_param('si', $notification_content, $post_owner_id);
-    $notification->execute();
-    $notification->close();
-
-    $con->commit();
-    $con->close();
-
-    header('Location: comments.php?blog_id=' . $blog_id);
-    exit;
-} catch (Throwable $exception) {
-    $con->rollback();
-    $con->close();
-    error_log('Comment save failed: ' . $exception->getMessage());
-    http_response_code($exception->getMessage() === 'Post not found.' ? 404 : 500);
-    echo $exception->getMessage() === 'Post not found.'
-        ? 'Post not found.'
-        : 'Unable to save the comment.';
-}
+require '../includes/security.php';require_authentication();
+if($_SERVER['REQUEST_METHOD']!=='POST'){http_response_code(405);header('Allow: POST');exit('Method not allowed.');}
+verify_csrf();require '../database/db.php';
+$blog_id=filter_var($_POST['blog_id']??0,FILTER_VALIDATE_INT);$commenter_id=(int)$_SESSION['user_id'];$comment_text=trim((string)($_POST['comment_text']??''));$username=strtoupper((string)($_SESSION['username']??''));
+if(!$blog_id||$comment_text===''||mb_strlen($comment_text)>2000){$con->close();http_response_code(422);exit('Invalid comment.');}
+try{$con->begin_transaction();$select=$con->prepare('SELECT user_id FROM blogs WHERE blog_id=? LIMIT 1');$select->bind_param('i',$blog_id);$select->execute();$blog=$select->get_result()->fetch_assoc();$select->close();if($blog===null)throw new RuntimeException('Post not found.');
+$insert=$con->prepare('INSERT INTO comments (blog_id,commenter_id,comment_text) VALUES (?,?,?)');$insert->bind_param('iis',$blog_id,$commenter_id,$comment_text);$insert->execute();$insert->close();$notification_content="$username commented on your post (Id: $blog_id): ".$comment_text;$notification=$con->prepare('INSERT INTO notifications (content,user_id) VALUES (?,?)');$post_owner_id=(int)$blog['user_id'];if($post_owner_id!==$commenter_id){$notification->bind_param('si',$notification_content,$post_owner_id);$notification->execute();}$notification->close();$con->commit();$con->close();header('Location: comments.php?blog_id='.$blog_id);exit;}catch(Throwable $exception){$con->rollback();$con->close();error_log('Comment save failed: '.$exception->getMessage());http_response_code($exception->getMessage()==='Post not found.'?404:500);echo $exception->getMessage()==='Post not found.'?'Post not found.':'Unable to save the comment.';}
