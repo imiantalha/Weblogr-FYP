@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 require '../includes/security.php';
 require_authentication();
@@ -10,32 +9,40 @@ $csrf = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Post | Weblogr</title>
+    <meta name="theme-color" content="#0f172a">
+    <title>Write a Story | Weblogr</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/weblogr-mark.svg">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../assets/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        .editor-page{width:min(1050px,calc(100% - 48px));margin:0 auto;padding:38px 0 80px}.editor-top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}.editor-eyebrow{margin:0 0 5px;color:#2563eb;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.editor-top h1{margin:0;color:#101828;font-size:32px;letter-spacing:-.045em;line-height:1.1}.editor-top p{margin:8px 0 0;color:#667085;font-size:13px}.editor-actions{display:flex;gap:9px}.editor-btn{min-height:42px;padding:0 16px;border-radius:10px;border:1px solid #d0d5dd;background:#fff;color:#182230;font-weight:750;font-size:12px;cursor:pointer;transition:.18s}.editor-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(16,24,40,.08)}.editor-btn.primary{border-color:#2563eb;background:#2563eb;color:#fff}.editor-btn.primary:hover{background:#1d4ed8}.editor-shell{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px}.editor-card,.editor-side-card{background:#fff;border:1px solid #e4e7ec;border-radius:18px;box-shadow:0 10px 35px rgba(16,24,40,.07)}.editor-card{padding:30px}.field{margin-bottom:22px}.field label{display:block;margin-bottom:8px;color:#344054;font-size:11px;font-weight:800;letter-spacing:.02em}.field-hint{margin:-3px 0 9px;color:#98a2b3;font-size:11px}.title-input,.story-textarea,.category-select{width:100%;border:1px solid #d0d5dd;border-radius:11px;background:#fff;color:#101828;outline:0;transition:.18s}.title-input{height:58px;padding:0 16px;font-size:22px;font-weight:650;letter-spacing:-.025em}.story-textarea{min-height:430px;padding:16px;resize:vertical;font-size:15px;line-height:1.8}.category-select{height:46px;padding:0 12px;font-size:13px}.title-input:focus,.story-textarea:focus,.category-select:focus{border-color:#7ca4ff;box-shadow:0 0 0 4px rgba(37,99,235,.09)}.cover-drop{position:relative;display:grid;place-items:center;min-height:190px;padding:25px;border:1.5px dashed #b8c4d4;border-radius:14px;background:#f8fafc;text-align:center;cursor:pointer;overflow:hidden;transition:.18s}.cover-drop:hover,.cover-drop.dragging{border-color:#2563eb;background:#f3f7ff}.cover-drop i{font-size:25px;color:#2563eb;margin-bottom:9px}.cover-drop strong{display:block;color:#182230;font-size:13px}.cover-drop span{display:block;margin-top:4px;color:#98a2b3;font-size:11px}.cover-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.cover-preview{display:none;position:absolute;inset:0;background:#fff}.cover-preview img{width:100%;height:100%;object-fit:cover}.cover-drop.has-image .cover-preview{display:block}.cover-drop.has-image .cover-copy{display:none}.remove-cover{display:none;position:absolute;right:10px;top:10px;z-index:2;border:0;border-radius:8px;background:rgba(15,23,42,.8);color:#fff;padding:8px 10px;cursor:pointer}.cover-drop.has-image .remove-cover{display:block}.editor-side-card{padding:20px;height:max-content}.editor-side-card h2{margin:0 0 14px;color:#101828;font-size:14px}.side-tip{display:flex;gap:10px;padding:12px 0;border-top:1px solid #eef0f3}.side-tip:first-of-type{border-top:0}.side-tip i{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:8px;background:#eef4ff;color:#2563eb;font-size:11px}.side-tip strong{display:block;color:#344054;font-size:11px}.side-tip span{display:block;margin-top:2px;color:#98a2b3;font-size:10px;line-height:1.5}.draft-toggle{display:flex;align-items:center;justify-content:space-between;padding:13px 0;margin-top:5px;border-top:1px solid #eef0f3}.draft-toggle label{margin:0;color:#344054;font-size:11px;font-weight:750}.switch{position:relative;width:38px;height:22px}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:#d0d5dd;cursor:pointer;transition:.18s}.slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.18s}.switch input:checked+.slider{background:#2563eb}.switch input:checked+.slider:before{transform:translateX(16px)}.editor-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:15px;color:#98a2b3;font-size:10px}.editor-error{display:none;margin-bottom:18px;padding:11px 13px;border:1px solid #fecdca;border-radius:10px;background:#fff5f4;color:#b42318;font-size:11px}.editor-error.show{display:block}@media(max-width:900px){.editor-shell{grid-template-columns:1fr}.editor-side-card{order:-1}.editor-page{padding-top:28px}}@media(max-width:600px){.editor-page{width:calc(100% - 28px);padding-top:72px}.editor-top{align-items:flex-start;flex-direction:column}.editor-top h1{font-size:27px}.editor-actions{width:100%}.editor-btn{flex:1}.editor-card{padding:20px}.title-input{font-size:19px}.story-textarea{min-height:330px}}
+    </style>
 </head>
 <body>
-<div class="top-bar"><span><b>Blog | New Post</b></span></div>
 <?php include 'sidebar.php'; ?>
-<main class="writing-section">
-    <form action="save_post.php" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>">
-        <input id="blog-title" name="title" type="text" maxlength="255" required placeholder="Enter Blog Title" autocomplete="off">
-        <input type="file" name="uploadimage" accept="image/jpeg,image/png,image/gif,image/webp">
-        <textarea id="blog-para" name="description" maxlength="10000" rows="10" required placeholder="Description..." autocomplete="off"></textarea>
-        <label for="category">Category:</label>
-        <select name="category" id="category" required>
-            <option value="">-- Category --</option>
-            <option value="education">Education</option>
-            <option value="technology">Technology</option>
-            <option value="travel">Travel</option>
-            <option value="food">Food</option>
-            <option value="fashion">Fashion</option>
-            <option value="sport">Sport</option>
-            <option value="other">Others</option>
-        </select>
-        <label><input type="checkbox" name="draft"> Save as draft</label>
-        <button id="save-btn" type="submit">Save Post</button>
-    </form>
+<main class="content">
+    <section class="editor-page">
+        <div class="editor-top">
+            <div><p class="editor-eyebrow">Publishing studio</p><h1>Write a story</h1><p>Turn your ideas into something worth sharing.</p></div>
+            <div class="editor-actions"><a class="editor-btn" href="index.php"><i class="fa-solid fa-arrow-left"></i> Back</a><button class="editor-btn primary" type="submit" form="story-form" id="save-btn"><i class="fa-solid fa-paper-plane"></i> Publish story</button></div>
+        </div>
+        <form id="story-form" action="save_post.php" method="POST" enctype="multipart/form-data" novalidate>
+            <input type="hidden" name="csrf_token" value="<?php echo $csrf; ?>">
+            <div class="editor-shell">
+                <div class="editor-card">
+                    <div id="editor-error" class="editor-error" role="alert"></div>
+                    <div class="field"><label for="blog-title">Title</label><input class="title-input" id="blog-title" name="title" type="text" maxlength="255" required placeholder="Give your story a clear, memorable title" autocomplete="off"></div>
+                    <div class="field"><label for="cover-image">Cover image</label><p class="field-hint">A strong cover helps readers decide what to read.</p><label class="cover-drop" id="cover-drop" for="cover-image"><div class="cover-copy"><i class="fa-regular fa-image"></i><strong>Choose a cover image</strong><span>JPG, PNG, GIF or WebP · up to the server upload limit</span></div><div class="cover-preview"><img id="cover-preview-image" alt="Selected cover preview"></div><button class="remove-cover" type="button" id="remove-cover" aria-label="Remove cover"><i class="fa-solid fa-xmark"></i></button><input id="cover-image" type="file" name="uploadimage" accept="image/jpeg,image/png,image/gif,image/webp"></label></div>
+                    <div class="field"><label for="blog-para">Your story</label><textarea class="story-textarea" id="blog-para" name="description" maxlength="10000" required placeholder="Start writing your story..."></textarea><div class="editor-footer"><span>Write clearly. Keep paragraphs easy to read.</span><span id="char-count">0 / 10,000</span></div></div>
+                </div>
+                <aside class="editor-side-card"><h2>Story settings</h2><div class="field"><label for="category">Category</label><select class="category-select" name="category" id="category" required><option value="">Choose a category</option><option value="education">Education</option><option value="technology">Technology</option><option value="travel">Travel</option><option value="food">Food</option><option value="fashion">Fashion</option><option value="sport">Sport</option><option value="other">Others</option></select></div><div class="draft-toggle"><label for="draft">Save as draft</label><label class="switch"><input id="draft" type="checkbox" name="draft"><span class="slider"></span></label></div><div class="side-tip"><i class="fa-solid fa-lightbulb"></i><div><strong>Start with value</strong><span>Give readers a reason to keep reading in your opening.</span></div></div><div class="side-tip"><i class="fa-solid fa-layer-group"></i><div><strong>Use structure</strong><span>Short paragraphs and useful headings improve readability.</span></div></div><div class="side-tip"><i class="fa-solid fa-wand-magic-sparkles"></i><div><strong>Preview before publishing</strong><span>Check your title, category and cover before you publish.</span></div></div></aside>
+            </div>
+        </form>
+    </section>
 </main>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{const form=document.getElementById('story-form'),title=document.getElementById('blog-title'),body=document.getElementById('blog-para'),category=document.getElementById('category'),file=document.getElementById('cover-image'),drop=document.getElementById('cover-drop'),preview=document.getElementById('cover-preview-image'),remove=document.getElementById('remove-cover'),count=document.getElementById('char-count'),error=document.getElementById('editor-error'),save=document.getElementById('save-btn');const update=()=>{count.textContent=`${body.value.length.toLocaleString()} / 10,000`;};body.addEventListener('input',update);update();file.addEventListener('change',()=>{const f=file.files?.[0];if(!f)return;const reader=new FileReader();reader.onload=e=>{preview.src=e.target.result;drop.classList.add('has-image');};reader.readAsDataURL(f);});remove.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();file.value='';preview.removeAttribute('src');drop.classList.remove('has-image');});['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('dragging')}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('dragging')}));drop.addEventListener('drop',e=>{if(e.dataTransfer.files.length){file.files=e.dataTransfer.files;file.dispatchEvent(new Event('change',{bubbles:true}))}});form.addEventListener('submit',e=>{error.classList.remove('show');error.textContent='';if(!title.value.trim()||!body.value.trim()||!category.value){e.preventDefault();error.textContent='Please complete the title, story and category before continuing.';error.classList.add('show');return;}save.disabled=true;save.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saving...';});});
+</script>
 </body>
 </html>
