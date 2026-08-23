@@ -17,10 +17,12 @@ $post_count = count_query($con, 'SELECT COUNT(*) total FROM blogs WHERE user_id=
 $follower_count = count_query($con, 'SELECT COUNT(*) total FROM followers WHERE blogger_id=?', $user_id);
 $following_count = count_query($con, 'SELECT COUNT(*) total FROM followers WHERE follower_id=?', $user_id);
 function e(string $v): string { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
+$saved=isset($_GET['saved'])&&$_GET['saved']==='1';
 ?>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><title>My Profile | Weblogr</title><link rel="icon" href="../assets/weblogr-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="../assets/weblogr-product.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"></head><body>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><title>My Profile | Weblogr</title><link rel="icon" href="../assets/weblogr-mark.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../assets/weblogr-mark.svg"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="../assets/weblogr-product.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></head><body>
 <?php include '../posts/sidebar.php'; ?>
 <main class="content"><div class="profile-page">
+<?php if($saved): ?><div class="form-success" role="status"><i class="fas fa-circle-check"></i> Your profile has been updated successfully.</div><?php endif; ?>
 <section class="profile-card profile-header">
 <div class="profile-picture-large"><?php if($profile_picture): ?><img src="<?php echo e('../uploads/'.$profile_picture); ?>" alt="<?php echo e($full_name); ?> profile picture"><?php else: ?><span aria-hidden="true"><?php echo e(strtoupper(substr($full_name,0,1))); ?></span><?php endif; ?></div>
 <div class="profile-main"><p class="eyebrow">YOUR PROFILE</p><h1><?php echo e($full_name); ?></h1><p><?php echo e($bio!==''?$bio:'Tell readers a little about yourself.'); ?></p><div class="profile-stats"><div><strong><?php echo $post_count; ?></strong><span>Posts</span></div><div><strong><?php echo $follower_count; ?></strong><span>Followers</span></div><div><strong><?php echo $following_count; ?></strong><span>Following</span></div></div></div>
