@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/../includes/security.php';
+require_once __DIR__ . '/../includes/public_helpers.php';
 start_secure_session();
 $is_admin = ($_SESSION['user_type'] ?? '') === 'Admin';
-$csrf = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
+$csrf = e(csrf_token());
 $notification_count = 0;
 if (isset($con) && isset($_SESSION['user_id'])) { require_once __DIR__ . '/../includes/notifications.php'; $notification_count = unread_notification_count($con, (int)$_SESSION['user_id']); }
 $current_page = basename($_SERVER['PHP_SELF'] ?? '');
