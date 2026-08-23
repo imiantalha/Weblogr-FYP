@@ -18,7 +18,13 @@ RewriteRule ^author/([0-9]+)/([^/]+)/?$ author.php?id=$1&slug=$2 [L,QSA]
 RewriteRule ^discover/?$ blog.php [L,QSA]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
-ErrorDocument 404 /404.html
+# Application-level 404 handling.
+# Existing files/directories continue to be served normally; only unresolved
+# application URLs are sent to the branded 404 controller. This avoids Apache's
+# ErrorDocument recursion and keeps the response under Weblogr's own UI.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ 404.php [L]
 
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
