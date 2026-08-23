@@ -7,6 +7,11 @@ Options -Indexes
 RewriteEngine On
 RewriteRule ^(?:database|includes|registration/vendor|registration/smtp)(?:/|$) - [F,L,NC]
 
+# Serve the Weblogr brand mark as the default browser favicon for every page,
+# including legacy pages that do not explicitly declare a favicon link.
+RewriteRule ^favicon\.ico$ assets/weblogr-mark.svg [L]
+RewriteRule ^favicon\.svg$ assets/weblogr-mark.svg [L]
+
 # Public publishing routes.
 RewriteRule ^read/([0-9]+)/([^/]+)/?$ article.php?id=$1&slug=$2 [L,QSA]
 RewriteRule ^author/([0-9]+)/([^/]+)/?$ author.php?id=$1&slug=$2 [L,QSA]
