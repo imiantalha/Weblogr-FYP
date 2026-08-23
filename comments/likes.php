@@ -42,7 +42,19 @@ try {
     $already_liked = $statement->get_result()->num_rows > 0;
     $statement->close();
 
-    if (!$already_liked) {
+    if ($already_liked) {
+        $statement = $con->prepare('DELETE FROM post_likes WHERE blog_id = ? AND user_id = ?');
+        $statement->bind_param('ii', $blog_id, $user_id);
+        $statement->execute();
+        $statement->close();
+
+        $statement = $con->prepare('UPDATE blogs SET likes = GREATEST(likes - 1, 0) WHERE blog_id = ?');
+        $statement->bind_param('i', $blog_id);
+        $statement->execute();
+        $statement->close();
+
+        $liked = false;
+    } else {
         $statement = $con->prepare('INSERT INTO post_likes (blog_id, user_id) VALUES (?, ?)');
         $statement->bind_param('ii', $blog_id, $user_id);
         $statement->execute();
@@ -55,12 +67,14 @@ try {
 
         $blogger_id = (int) $blog['user_id'];
         if ($blogger_id !== $user_id) {
-            $notification_content = "$username likes your post (Blog ID: $blog_id)";
+            $notification_content = "$username likes your post.";
             $statement = $con->prepare('INSERT INTO notifications (content, user_id) VALUES (?, ?)');
             $statement->bind_param('si', $notification_content, $blogger_id);
             $statement->execute();
             $statement->close();
         }
+
+        $liked = true;
     }
 
     $statement = $con->prepare('SELECT likes FROM blogs WHERE blog_id = ? LIMIT 1');
@@ -73,13 +87,13 @@ try {
     $con->close();
 
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => true, 'liked' => true, 'likes' => $likes]);
+    echo json_encode(['success' => true, 'liked' => $liked, 'likes' => $likes]);
     exit;
 } catch (Throwable $exception) {
     $con->rollback();
     $con->close();
-    error_log('Post like failed: ' . $exception->getMessage());
+    error_log('Post like toggle failed: ' . $exception->getMessage());
     http_response_code($exception->getMessage() === 'Post not found.' ? 404 : 500);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'message' => $exception->getMessage() === 'Post not found.' ? 'Post not found.' : 'Unable to like the post.']);
+    echo json_encode(['success' => false, 'message' => $exception->getMessage() === 'Post not found.' ? 'Post not found.' : 'Unable to update the reaction.']);
 }
