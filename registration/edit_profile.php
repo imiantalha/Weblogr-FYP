@@ -32,15 +32,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    }
   }
   if($error===null){$statement=$con->prepare('UPDATE users SET first_name=?,last_name=?,bio=?,profile_picture=? WHERE user_id=?');$statement->bind_param('ssssi',$first_name,$last_name,$bio,$profile_picture,$user_id);if(!$statement->execute())$error='We could not save your profile changes. Please try again.';$statement->close();}
-  if($error===null){$con->close();header('Location: profile.php?saved=1');exit;}
+  if($error===null){header('Location: profile.php?saved=1');exit;}
   if($new_file!==null&&$destination!==null&&is_file($destination))unlink($destination);
  }
 }
 $csrf=htmlspecialchars(csrf_token(),ENT_QUOTES,'UTF-8');
-$con->close();
 function e(string $v):string{return htmlspecialchars($v,ENT_QUOTES,'UTF-8');}
 ?>
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><title>Edit Profile | Weblogr</title><link rel="icon" href="../assets/weblogr-mark.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../assets/weblogr-mark.svg"><script src="../assets/form-validation.js" defer></script><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="../assets/weblogr-product.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></head><body>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><title>Edit Profile | Weblogr</title><link rel="icon" href="../assets/weblogr-mark.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="../assets/weblogr-mark.svg"><script src="../assets/form-validation.js" defer></script><link rel="stylesheet" href="../posts/style.css"><link rel="stylesheet" href="../assets/responsive.css"><link rel="stylesheet" href="../assets/weblogr-product.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"></head><body>
 <?php include '../posts/sidebar.php'; ?>
 <main class="content"><div class="profile-form-card"><section class="account-card">
 <div class="account-card-header"><div class="header-copy"><p class="eyebrow">ACCOUNT</p><h1>Edit profile</h1><p>Keep your public author profile accurate and recognizable.</p></div><a class="secondary-button" href="profile.php"><i class="fas fa-arrow-left"></i> Back</a></div>
