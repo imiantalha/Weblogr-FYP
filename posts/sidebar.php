@@ -11,7 +11,7 @@ function nav_active(string $page, string $current): string { return $page === $c
 ?>
 <link rel="icon" href="../assets/weblogr-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../assets/weblogr-mark.svg">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../posts/style.css">
 <link rel="stylesheet" href="../assets/responsive.css">
 <link rel="stylesheet" href="../assets/weblogr-product.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
