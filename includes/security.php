@@ -6,8 +6,30 @@ function start_secure_session(): void{apply_security_headers();if(session_status
 function csrf_token(): string{start_secure_session();if(empty($_SESSION['csrf_token']))$_SESSION['csrf_token']=bin2hex(random_bytes(32));return $_SESSION['csrf_token'];}
 function verify_csrf(): void{start_secure_session();$sessionToken=(string)($_SESSION['csrf_token']??'');$requestToken=(string)($_POST['csrf_token']??'');if($sessionToken===''||$requestToken===''||!hash_equals($sessionToken,$requestToken))render_product_error('Security check failed','Your form security token is missing or expired. Please return to the form and submit it again.',419);}
 function require_authentication(): int{start_secure_session();if(!isset($_SESSION['user_id'])){header('Location: ../registration/login.php');exit;}return (int)$_SESSION['user_id'];}
-function rate_limit_key(string $scope,string $identifier): string{return 'rate_'.hash('sha256',$scope.'|'.strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));}
-function enforce_rate_limit(string $scope,string $identifier,int $maxAttempts,int $windowSeconds): void{start_secure_session();$now=time();$key=rate_limit_key($scope,$identifier);$data=$_SESSION[$key]??['count'=>0,'started'=>$now];if($now-(int)$data['started']>$windowSeconds)$data=['count'=>0,'started'=>$now];if((int)$data['count']>=$maxAttempts)render_product_error('Too many requests','Please wait a little while before trying again.',429);$data['count']++;$_SESSION[$key]=$data;}
+function rate_limit_key(string $scope,string $identifier): string{return hash('sha256',$scope.'|'.strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));}
+// Persistent (DB-backed) rate limiting. Session-based limits are trivially bypassed by any
+// client that doesn't retain the session cookie (fresh incognito tab, scripted requests, etc.),
+// so attempt counters live in the `rate_limits` table instead, keyed by scope+identifier+IP.
+function enforce_rate_limit(string $scope,string $identifier,int $maxAttempts,int $windowSeconds): void{
+    require_once __DIR__.'/../database/db.php';
+    $key=rate_limit_key($scope,$identifier);
+    $now=time();
+    $select=$con->prepare('SELECT attempt_count,UNIX_TIMESTAMP(window_started_at) started FROM rate_limits WHERE limit_key=? LIMIT 1');
+    $select->bind_param('s',$key);$select->execute();$row=$select->get_result()->fetch_assoc();$select->close();
+    if($row!==null && ($now-(int)$row['started'])>$windowSeconds){
+        $reset=$con->prepare('UPDATE rate_limits SET attempt_count=0,window_started_at=NOW() WHERE limit_key=?');
+        $reset->bind_param('s',$key);$reset->execute();$reset->close();
+        $row=['attempt_count'=>0,'started'=>$now];
+    }
+    if($row!==null && (int)$row['attempt_count']>=$maxAttempts){$con->close();render_product_error('Too many requests','Please wait a little while before trying again.',429);}
+    $upsert=$con->prepare('INSERT INTO rate_limits (limit_key,attempt_count,window_started_at) VALUES (?,1,NOW()) ON DUPLICATE KEY UPDATE attempt_count=attempt_count+1');
+    $upsert->bind_param('s',$key);$upsert->execute();$upsert->close();
+}
 function enforce_login_rate_limit(string $identifier,int $maxAttempts=5,int $windowSeconds=900): void{enforce_rate_limit('login',$identifier,$maxAttempts,$windowSeconds);}
-function record_failed_login(string $identifier): void{start_secure_session();$key='login_attempts_'.hash('sha256',strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));$data=$_SESSION[$key]??['count'=>0,'started'=>time()];$data['count']=(int)$data['count']+1;$_SESSION[$key]=$data;}
-function clear_login_rate_limit(string $identifier): void{start_secure_session();unset($_SESSION[rate_limit_key('login',$identifier)]);$key='login_attempts_'.hash('sha256',strtolower(trim($identifier)).'|'.($_SERVER['REMOTE_ADDR']??'unknown'));unset($_SESSION[$key]);}
+function record_failed_login(string $identifier): void{/* Kept as a no-op call site for backward compatibility; enforce_rate_limit() already records every attempt (successful or not) at call time. */}
+function clear_login_rate_limit(string $identifier): void{
+    require_once __DIR__.'/../database/db.php';
+    $key=rate_limit_key('login',$identifier);
+    $delete=$con->prepare('DELETE FROM rate_limits WHERE limit_key=?');
+    $delete->bind_param('s',$key);$delete->execute();$delete->close();
+}

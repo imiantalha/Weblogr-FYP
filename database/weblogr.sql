@@ -135,5 +135,13 @@ CREATE TABLE `moderation_logs` (
   CONSTRAINT `fk_moderation_blog` FOREIGN KEY (`blog_id`) REFERENCES `blogs` (`blog_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `rate_limits` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `limit_key` VARCHAR(191) NOT NULL,
+  `attempt_count` INT UNSIGNED NOT NULL DEFAULT 1,
+  `window_started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_rate_limits_key` (`limit_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 -- No sample data.
