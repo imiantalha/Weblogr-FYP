@@ -3,7 +3,7 @@ declare(strict_types=1);
 require '../includes/security.php';
 require '../includes/google_auth.php';
 start_secure_session();
-if(isset($_SESSION['username'])){header('Location: profile.php');exit;}
+if(isset($_SESSION['user_id'])){header('Location: profile.php');exit;}
 $login_error=false;
 $google_error=(string)($_SESSION['google_auth_error']??'');unset($_SESSION['google_auth_error']);
 $logged_out=isset($_GET['logged_out'])&&$_GET['logged_out']==='1';
