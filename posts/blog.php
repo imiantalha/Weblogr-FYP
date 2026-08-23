@@ -22,9 +22,11 @@ if (!$blog_id) {
     );
 }
 
-$stmt = $con->prepare('SELECT blog_id, title FROM blogs WHERE blog_id = ? AND status = ? LIMIT 1');
-$status = 'published';
-$stmt->bind_param('is', $blog_id, $status);
+// Weblogr keeps published stories in `blogs`; drafts are stored separately
+// in `draft_posts`. The normalized blogs table intentionally has no status
+// column, so do not filter published stories by a non-existent status field.
+$stmt = $con->prepare('SELECT blog_id, title FROM blogs WHERE blog_id = ? LIMIT 1');
+$stmt->bind_param('i', $blog_id);
 $stmt->execute();
 $story = $stmt->get_result()->fetch_assoc();
 $stmt->close();
@@ -33,7 +35,7 @@ $con->close();
 if (!$story) {
     public_not_found(
         'Story not found',
-        'This story may have been removed, unpublished, or the link may be outdated. Explore the latest stories to find something new to read.'
+        'This story may have been removed or the link may be outdated. Explore the latest stories to find something new to read.'
     );
 }
 
