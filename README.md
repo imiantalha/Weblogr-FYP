@@ -85,7 +85,7 @@ The public creator profile is available at [`seo-links.html`](seo-links.html), c
 ## Repository Structure
 
 ```text
-Weblogr-FYP/
+weblogr/
 ├── comments/          # Comments and interactions
 ├── database/          # Connection, clean schema and migrations
 ├── docs/              # FYP documentation and development guide
@@ -115,8 +115,8 @@ Weblogr-FYP/
 ### 1. Clone
 
 ```bash
-git clone https://github.com/imiantalha/Weblogr-FYP.git
-cd Weblogr-FYP
+git clone https://github.com/imiantalha/weblogr.git
+cd weblogr
 ```
 
 ### 2. Configure environment
@@ -152,7 +152,7 @@ For an existing database, apply only the relevant migration from `database/migra
 With XAMPP, start Apache and MySQL and open:
 
 ```text
-http://localhost/Weblogr-FYP/
+http://localhost/weblogr/
 ```
 
 Or:
