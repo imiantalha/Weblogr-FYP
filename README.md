@@ -4,6 +4,7 @@ Weblogr is a Core PHP/MySQL blogging platform developed as a Final Year Project 
 
 **Creator:** Muhammad Talha — Software Engineer
 
+- **Live Demo:** https://weblogr.up.railway.app/
 - **Portfolio:** https://imiantalha.vercel.app/
 - **GitHub:** https://github.com/imiantalha
 - **Fiverr:** https://www.fiverr.com/imiantalha
@@ -65,7 +66,7 @@ Google authentication is disabled unless all three environment variables are con
 ```text
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=https://your-domain.example/registration/google_callback.php
+GOOGLE_REDIRECT_URI=https://weblogr.up.railway.app/registration/google_callback.php
 ```
 
 Copy `.env.example` to `.env` for local development. Secrets must never be committed.
@@ -124,6 +125,8 @@ cd weblogr
 ```bash
 cp .env.example .env
 ```
+
+For local development, override `APP_URL` in `.env` with your local URL (for example `http://localhost/weblogr`).
 
 Fill in database/mail settings and, when Google Sign-In is desired, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`.
 
