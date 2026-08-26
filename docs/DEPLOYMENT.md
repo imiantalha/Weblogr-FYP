@@ -1,5 +1,11 @@
 # Weblogr Deployment Guide
 
+## Production deployment
+
+**Live application:** https://weblogr.up.railway.app/
+
+The current production deployment runs on Railway. The application should use the Railway URL as its canonical public URL through the `APP_URL` environment variable.
+
 ## Recommended runtime
 
 - PHP 8.1+ with `mysqli` and `mbstring` enabled
@@ -17,6 +23,18 @@ Do not run the migration SQL files on top of the bootstrap unless you are upgrad
 ## 2. Configure environment variables
 
 Copy `.env.example` to `.env` for local Apache/XAMPP development. Production hosts should prefer their platform's environment-variable settings.
+
+Set the canonical production URL:
+
+```text
+APP_URL=https://weblogr.up.railway.app
+```
+
+For Google Sign-In in production, configure the exact authorized redirect URI:
+
+```text
+https://weblogr.up.railway.app/registration/google_callback.php
+```
 
 Required database values:
 
@@ -52,12 +70,18 @@ http://localhost/Weblogr-FYP/
 
 ## 5. Verify the deployment
 
-Open:
+Open the production application at:
 
 ```text
-/health.php
-/sitemap.php
-/robots.txt
+https://weblogr.up.railway.app/
+```
+
+Then verify:
+
+```text
+https://weblogr.up.railway.app/health.php
+https://weblogr.up.railway.app/sitemap.php
+https://weblogr.up.railway.app/robots.txt
 ```
 
 A healthy application returns JSON from `/health.php` with `status: ok` and a successful database connection.
